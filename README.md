@@ -18,8 +18,8 @@
 
 [Ханойская башня](https://romanautilus.github.io/index/HanoiTower.html)
 
-[Быки и коровы]
+[Быки и коровы](https://romanautilus.github.io/index/bulls-and-cows.html)
 
-[Судоку]
+[Судоку](https://romanautilus.github.io/index/sudoku.html)
 
-[Камень · Ножницы · Бумага · Ящерица · Спок]
+[Камень · Ножницы · Бумага · Ящерица · Спок](https://romanautilus.github.io/index/Stone-Scissors-Paper-Lizard-Spock.html)
