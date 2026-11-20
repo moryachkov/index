@@ -24,4 +24,4 @@
 
 [Камень · Ножницы · Бумага · Ящерица · Спок](https://moryachkov.github.io/index/Stone-Scissors-Paper-Lizard-Spock.html)
 
-А тут [полезные ресурсы]
+А тут [полезные ресурсы](https://moryachkov.github.io/index/useful-resources.html)
