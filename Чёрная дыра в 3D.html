@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Чёрная дыра в 3D</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+  canvas.drag { cursor: grabbing; }
+  .ui {
+    position: fixed; left: 0; right: 0; bottom: 0; padding: 14px 16px;
+    display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    color: #cfd6e4; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(to top, rgba(0,0,0,.7), rgba(0,0,0,0));
+    pointer-events: none;
+  }
+  .ui label { pointer-events: auto; display: flex; gap: 8px; align-items: center; cursor: pointer; user-select: none; }
+  .ui input { accent-color: #ff9a3c; width: 16px; height: 16px; }
+  .title { position: fixed; top: 14px; left: 16px; color: #e8ecf5; font: 600 18px system-ui, sans-serif; pointer-events: none; text-shadow: 0 1px 8px #000; }
+  #err { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; color: #f88; font: 16px system-ui; text-align: center; padding: 24px; }
+</style>
+</head>
+<body>
+<div class="title">Чёрная дыра</div>
+<canvas id="c"></canvas>
+<div class="ui">
+  <span>Зажмите кнопку мыши и тяните, чтобы вращать · колесо — приблизить/отдалить</span>
+  <label><input type="checkbox" id="auto" checked> Автовращение</label>
+</div>
+<div id="err">Не удалось запустить 3D: WebGL недоступен или библиотека three.js не загрузилась.</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  if (typeof THREE === "undefined") { document.getElementById("err").style.display = "flex"; return; }
+
+  var canvas = document.getElementById("c");
+  var renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+  } catch (e) { document.getElementById("err").style.display = "flex"; return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x000000, 1);
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(50, 1, 0.1, 400);
+
+  /* ---------- Звёзды ---------- */
+  (function () {
+    var N = 3500, pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
+    for (var i = 0; i < N; i++) {
+      var u = Math.random() * 2 - 1, t = Math.random() * Math.PI * 2;
+      var s = Math.sqrt(1 - u * u), r = 80 + Math.random() * 60;
+      pos[i * 3] = r * s * Math.cos(t); pos[i * 3 + 1] = r * u; pos[i * 3 + 2] = r * s * Math.sin(t);
+      var k = 0.55 + Math.random() * 0.45, warm = Math.random();
+      col[i * 3] = k * (0.85 + 0.15 * warm); col[i * 3 + 1] = k * 0.9; col[i * 3 + 2] = k * (1.0 - 0.2 * warm);
+    }
+    var g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    scene.add(new THREE.Points(g, new THREE.PointsMaterial({ size: 1.6, sizeAttenuation: false, vertexColors: true })));
+  })();
+
+  /* ---------- Горизонт событий ---------- */
+  var horizon = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 64, 48),
+    new THREE.MeshBasicMaterial({ color: 0x000000 })
+  );
+  scene.add(horizon);
+
+  /* ---------- Аккреционный диск ---------- */
+  var diskUniforms = { uTime: { value: 0 } };
+  var disk = new THREE.Mesh(
+    new THREE.RingGeometry(1.45, 5.2, 192, 1),
+    new THREE.ShaderMaterial({
+      uniforms: diskUniforms,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      vertexShader: [
+        "varying vec3 vWorld; varying vec2 vLocal;",
+        "void main(){",
+        "  vLocal = position.xy;",
+        "  vec4 w = modelMatrix * vec4(position, 1.0);",
+        "  vWorld = w.xyz;",
+        "  gl_Position = projectionMatrix * viewMatrix * w;",
+        "}"
+      ].join("\n"),
+      fragmentShader: [
+        "precision highp float;",
+        "uniform float uTime;",
+        "varying vec3 vWorld; varying vec2 vLocal;",
+        "float hash(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }",
+        "float noise(vec2 p){",
+        "  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);",
+        "  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);",
+        "}",
+        "void main(){",
+        "  float r = length(vLocal);",
+        "  float ang = uTime * 1.3 / pow(r, 1.5);",
+        "  float c = cos(ang), s = sin(ang);",
+        "  vec2 p = mat2(c, -s, s, c) * vLocal;",
+        "  float n = noise(p * 2.5) * 0.5 + noise(p * 6.0) * 0.3 + noise(p * 14.0) * 0.2;",
+        "  float t = clamp((r - 1.45) / 3.75, 0.0, 1.0);",
+        "  vec3 col = mix(vec3(1.0, 0.96, 0.85), vec3(1.0, 0.55, 0.14), smoothstep(0.0, 0.35, t));",
+        "  col = mix(col, vec3(0.55, 0.10, 0.04), smoothstep(0.3, 1.0, t));",
+        "  float intensity = (0.3 + 1.4 * n) * (1.7 * pow(1.0 - t, 1.6) + 0.2);",
+        "  vec3 tang = normalize(cross(vec3(0.0, 1.0, 0.0), vWorld));",
+        "  vec3 v = normalize(cameraPosition - vWorld);",
+        "  float beam = pow(clamp(1.0 + 0.55 * dot(tang, v), 0.2, 2.0), 3.0);",
+        "  float a = smoothstep(1.45, 1.85, r) * (1.0 - smoothstep(3.8, 5.2, r));",
+        "  gl_FragColor = vec4(col * intensity * beam, a);",
+        "}"
+      ].join("\n")
+    })
+  );
+  disk.rotation.x = -Math.PI / 2;
+  scene.add(disk);
+
+  /* ---------- Ореол: линзированное изображение диска и фотонное кольцо ---------- */
+  var haloUniforms = { uAxis: { value: new THREE.Vector2(0, 1) } };
+  var halo = new THREE.Mesh(
+    new THREE.PlaneGeometry(8, 8),
+    new THREE.ShaderMaterial({
+      uniforms: haloUniforms,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+      fragmentShader: [
+        "precision highp float;",
+        "uniform vec2 uAxis; varying vec2 vUv;",
+        "void main(){",
+        "  vec2 p = (vUv - 0.5) * 8.0;",
+        "  float r = length(p);",
+        "  if (r < 1.02) { gl_FragColor = vec4(0.0); return; }",
+        "  vec2 d = p / r;",
+        "  float s = length(uAxis);",
+        "  float along = abs(dot(d, uAxis / max(s, 0.0001)));",
+        "  float lens = mix(1.0, pow(along, 2.5) * 1.6 + 0.05, smoothstep(0.0, 0.75, s));",
+        "  float arcs = smoothstep(1.02, 1.25, r) * exp(-(r - 1.1) * 1.5) * lens;",
+        "  float ring = exp(-pow((r - 1.1) / 0.045, 2.0));",
+        "  vec3 col = mix(vec3(1.0, 0.55, 0.15), vec3(1.0, 0.95, 0.85), ring);",
+        "  float k = arcs * 0.9 + ring * 1.2;",
+        "  gl_FragColor = vec4(col * k, clamp(k, 0.0, 1.0));",
+        "}"
+      ].join("\n")
+    })
+  );
+  scene.add(halo);
+
+  /* ---------- Управление мышью / касанием ---------- */
+  var theta = 0.6, phi = 1.32, radius = 12;
+  var pointers = new Map(), lastPinch = 0, dragging = false;
+  var autoEl = document.getElementById("auto");
+
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+  canvas.addEventListener("pointerdown", function (e) {
+    canvas.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    dragging = true; canvas.classList.add("drag");
+    if (pointers.size === 2) lastPinch = pinchDist();
+  });
+  canvas.addEventListener("pointermove", function (e) {
+    var p = pointers.get(e.pointerId);
+    if (!p) return;
+    var dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
+    if (pointers.size === 1) {
+      theta -= dx * 0.006;
+      phi = clamp(phi - dy * 0.006, 0.05, Math.PI - 0.05);
+    } else if (pointers.size === 2) {
+      var d = pinchDist();
+      if (lastPinch > 0) radius = clamp(radius * lastPinch / d, 3, 40);
+      lastPinch = d;
+    }
+  });
+  function endPointer(e) {
+    pointers.delete(e.pointerId);
+    if (pointers.size === 0) { dragging = false; canvas.classList.remove("drag"); }
+    lastPinch = 0;
+  }
+  canvas.addEventListener("pointerup", endPointer);
+  canvas.addEventListener("pointercancel", endPointer);
+  canvas.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    radius = clamp(radius * Math.exp(e.deltaY * 0.001), 3, 40);
+  }, { passive: false });
+
+  function pinchDist() {
+    var a = Array.from(pointers.values());
+    return a.length < 2 ? 0 : Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
+  }
+
+  /* ---------- Размер и цикл ---------- */
+  function resize() {
+    var w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  var clock = new THREE.Clock();
+  var right = new THREE.Vector3(), up = new THREE.Vector3();
+
+  function frame() {
+    var dt = Math.min(clock.getDelta(), 0.05);
+    diskUniforms.uTime.value += dt;
+    if (autoEl.checked && !dragging) theta += dt * 0.12;
+
+    camera.position.set(
+      radius * Math.sin(phi) * Math.sin(theta),
+      radius * Math.cos(phi),
+      radius * Math.sin(phi) * Math.cos(theta)
+    );
+    camera.lookAt(0, 0, 0);
+    camera.updateMatrixWorld();
+
+    halo.quaternion.copy(camera.quaternion);
+    right.set(1, 0, 0).applyQuaternion(camera.quaternion);
+    up.set(0, 1, 0).applyQuaternion(camera.quaternion);
+    haloUniforms.uAxis.value.set(right.y, up.y);
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+</script>
+</body>
+</html>
