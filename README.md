@@ -1,8 +1,12 @@
 Привет! 
+
 Это мои интерактивные модели, созданные с помощью разных ИИ:
+
+## 3D-модели
 
 [Чёрная дыра в 3D](https://romanautilus.github.io/index/Black%20Hole%203D.html)
 
+## Инструменты
 
 [Калькулятор релятивистских эффектов](https://romanautilus.github.io/index/Realtivity%20Calc.html)
 
@@ -12,4 +16,10 @@
 
 ## Игры:
 
-Ханойская башня
+[Ханойская башня](https://romanautilus.github.io/index/HanoiTower.html)
+
+[Быки и коровы]
+
+[Судоку]
+
+[Камень · Ножницы · Бумага · Ящерица · Спок]
