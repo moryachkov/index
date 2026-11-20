@@ -23,3 +23,5 @@
 [Судоку](https://moryachkov.github.io/index/sudoku.html)
 
 [Камень · Ножницы · Бумага · Ящерица · Спок](https://moryachkov.github.io/index/Stone-Scissors-Paper-Lizard-Spock.html)
+
+А тут [полезные ресурсы]
