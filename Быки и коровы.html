@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Быки и коровы</title>
+<style>
+  :root {
+    --bg: #f6f4ef; --card: #ffffff; --ink: #1f2a24; --muted: #6b7670;
+    --line: #e2ded4; --accent: #2f6f4f; --accent-ink: #ffffff;
+    --bull: #c2410c; --cow: #1d4ed8; --err: #b91c1c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141916; --card: #1d2420; --ink: #e8ece9; --muted: #92a098;
+      --line: #2e3832; --accent: #4ea779; --accent-ink: #0d1410;
+      --bull: #fb923c; --cow: #7aa2ff; --err: #f87171;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex; justify-content: center; padding: 20px 14px 40px;
+  }
+  .wrap { width: 100%; max-width: 460px; }
+  h1 { margin: 0 0 4px; font-size: 26px; }
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 16px; margin-bottom: 14px;
+  }
+  .row { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  label { font-size: 14px; color: var(--muted); }
+  select, button { font: inherit; }
+  select {
+    background: var(--bg); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 10px;
+  }
+  .slots { display: flex; gap: 10px; justify-content: center; margin: 6px 0 14px; }
+  .slot {
+    width: 54px; height: 64px; border: 2px solid var(--line); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; font-weight: 600; background: var(--bg);
+  }
+  .slot.active { border-color: var(--accent); }
+  .slots.shake { animation: shake .3s; }
+  @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .pad button {
+    padding: 12px 0; font-size: 18px; border-radius: 10px; cursor: pointer;
+    background: var(--bg); color: var(--ink); border: 1px solid var(--line);
+  }
+  .pad button:disabled { opacity: .35; cursor: default; }
+  .pad button:active:not(:disabled) { transform: scale(.96); }
+  .pad button.ex { border-color: var(--err); background: color-mix(in srgb, var(--err) 14%, var(--bg)); }
+  .pad button.sure { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--bg)); }
+  .switch { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; user-select: none; }
+  .switch input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .notes { display: none; margin-top: 12px; }
+  .notes.on { display: block; }
+  .notes .hint { font-size: 13px; color: var(--muted); margin-bottom: 10px; line-height: 1.4; }
+  .ngrid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; }
+  .ngrid button {
+    padding: 10px 0; font-size: 17px; font-weight: 600; border-radius: 10px; cursor: pointer;
+    background: var(--bg); color: var(--ink); border: 2px solid var(--line);
+  }
+  .ngrid button.ex { border-color: var(--err); background: color-mix(in srgb, var(--err) 18%, var(--bg)); }
+  .ngrid button.sure { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, var(--bg)); }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .legend b { color: var(--ink); }
+  .linkbtn { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; padding: 0; font-size: 12px; }
+  .actions { display: flex; gap: 8px; margin-top: 12px; }
+  .actions button {
+    flex: 1; padding: 12px; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink); font-weight: 600;
+  }
+  .actions button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .actions button:disabled { opacity: .45; cursor: default; }
+  .msg { min-height: 20px; margin-top: 10px; font-size: 14px; text-align: center; color: var(--err); }
+  .msg.ok { color: var(--accent); font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 0 6px 6px; }
+  td { padding: 7px 6px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  td.guess { font-size: 18px; letter-spacing: 3px; font-weight: 600; }
+  .b { color: var(--bull); font-weight: 700; }
+  .c { color: var(--cow); font-weight: 700; }
+  .empty { color: var(--muted); text-align: center; font-size: 14px; padding: 8px; }
+  details summary { cursor: pointer; font-weight: 600; }
+  details p { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 8px 0 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🐂 Быки и коровы 🐄</h1>
+  <div class="sub">Компьютер загадал число из неповторяющихся цифр от 1 до 9. Угадайте его.</div>
+
+  <div class="card">
+    <details>
+      <summary>Правила</summary>
+      <p>
+        <b class="b">Бык</b> — цифра угадана и стоит на своём месте.<br>
+        <b class="c">Корова</b> — цифра есть в числе, но стоит на другом месте.<br>
+        Используются только цифры от 1 до 9, ноля нет. Цифры в загаданном числе не повторяются,
+        ваши попытки тоже должны состоять из разных цифр.
+      </p>
+    </details>
+  </div>
+
+  <div class="card">
+    <div class="row" style="margin-bottom:10px">
+      <label>Длина числа
+        <select id="len">
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+        </select>
+      </label>
+      <span id="tries" style="font-size:14px;color:var(--muted)">Попыток: 0</span>
+    </div>
+
+    <div class="slots" id="slots"></div>
+    <div class="pad" id="pad"></div>
+
+    <div class="actions">
+      <button id="back">⌫ Стереть</button>
+      <button id="submit" class="primary">Проверить</button>
+    </div>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="card">
+    <label class="switch" style="color:var(--ink);font-size:16px">
+      <input type="checkbox" id="notesToggle"> Блокнот цифр
+    </label>
+    <div class="notes" id="notes">
+      <div class="hint">Нажимайте на цифру, чтобы менять отметку: пусто → исключена (красная обводка) → точно есть в числе (зелёная обводка).</div>
+      <div class="ngrid" id="ngrid"></div>
+      <div class="legend">
+        <span><b>1</b> — неизвестно</span>
+        <span><b style="color:var(--err)">2</b> — исключена</span>
+        <span><b style="color:var(--accent)">3</b> — точно есть</span>
+        <button class="linkbtn" id="notesClear">сбросить</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead><tr><th>#</th><th>Попытка</th><th>Быки</th><th>Коровы</th></tr></thead>
+      <tbody id="history"></tbody>
+    </table>
+    <div class="empty" id="empty">Пока нет попыток</div>
+  </div>
+
+  <div class="actions">
+    <button id="giveup">Сдаться</button>
+    <button id="restart">Новая игра</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  var len = 4, secret = "", guess = "", attempts = 0, over = false;
+  var notesOn = false;
+  var notes = {}; // цифра -> 1 (исключена) | 2 (точно есть)
+
+  function renderNotes() {
+    var g = document.getElementById("ngrid");
+    g.innerHTML = "";
+    for (var n = 1; n <= 9; n++) {
+      (function (d) {
+        var b = document.createElement("button");
+        b.textContent = d;
+        var s = notes[d] || 0;
+        b.className = s === 1 ? "ex" : s === 2 ? "sure" : "";
+        b.setAttribute("aria-label", "Цифра " + d + ": " + (s === 1 ? "исключена" : s === 2 ? "точно есть" : "неизвестно"));
+        b.onclick = function () {
+          notes[d] = ((notes[d] || 0) + 1) % 3;
+          renderNotes();
+          renderPad();
+        };
+        g.appendChild(b);
+      })(n);
+    }
+  }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var slotsEl = $("slots"), padEl = $("pad"), msgEl = $("msg");
+
+  function newSecret(n) {
+    var digits = "123456789".split("");
+    for (var i = digits.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = digits[i]; digits[i] = digits[j]; digits[j] = t;
+    }
+    return digits.slice(0, n).join("");
+  }
+
+  function score(s, g) {
+    var bulls = 0, cows = 0;
+    for (var i = 0; i < g.length; i++) {
+      if (g[i] === s[i]) bulls++;
+      else if (s.indexOf(g[i]) !== -1) cows++;
+    }
+    return { bulls: bulls, cows: cows };
+  }
+
+  function say(text, ok) {
+    msgEl.textContent = text || "";
+    msgEl.className = "msg" + (ok ? " ok" : "");
+  }
+
+  function renderSlots() {
+    slotsEl.innerHTML = "";
+    for (var i = 0; i < len; i++) {
+      var d = document.createElement("div");
+      d.className = "slot" + (!over && i === guess.length ? " active" : "");
+      d.textContent = guess[i] || "";
+      slotsEl.appendChild(d);
+    }
+  }
+
+  function renderPad() {
+    padEl.innerHTML = "";
+    for (var n = 1; n <= 9; n++) {
+      (function (digit) {
+        var b = document.createElement("button");
+        b.textContent = digit;
+        b.disabled = over || guess.indexOf(String(digit)) !== -1 || guess.length >= len;
+        if (notesOn) b.className = notes[digit] === 1 ? "ex" : notes[digit] === 2 ? "sure" : "";
+        b.onclick = function () { addDigit(String(digit)); };
+        padEl.appendChild(b);
+      })(n);
+    }
+  }
+
+  function render() {
+    renderSlots();
+    renderPad();
+    $("tries").textContent = "Попыток: " + attempts;
+    $("submit").disabled = over;
+    $("back").disabled = over;
+    $("giveup").disabled = over;
+  }
+
+  function addDigit(d) {
+    if (over || guess.length >= len || guess.indexOf(d) !== -1) return;
+    guess += d;
+    say("");
+    render();
+  }
+
+  function backspace() {
+    if (over) return;
+    guess = guess.slice(0, -1);
+    say("");
+    render();
+  }
+
+  function addRow(g, r) {
+    $("empty").style.display = "none";
+    var tr = document.createElement("tr");
+    tr.innerHTML =
+      "<td>" + attempts + "</td>" +
+      '<td class="guess">' + g + "</td>" +
+      '<td class="b">' + r.bulls + "</td>" +
+      '<td class="c">' + r.cows + "</td>";
+    var tb = $("history");
+    tb.insertBefore(tr, tb.firstChild);
+  }
+
+  function submit() {
+    if (over) return;
+    if (guess.length < len) {
+      say("Введите все " + len + " цифры");
+      slotsEl.classList.remove("shake"); void slotsEl.offsetWidth; slotsEl.classList.add("shake");
+      return;
+    }
+    attempts++;
+    var r = score(secret, guess);
+    addRow(guess, r);
+    if (r.bulls === len) {
+      over = true;
+      say("🎉 Победа! Число " + secret + " угадано за " + attempts + " " + plural(attempts) + ".", true);
+    } else {
+      say("");
+    }
+    guess = "";
+    render();
+  }
+
+  function plural(n) {
+    var m10 = n % 10, m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return "попытку";
+    if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return "попытки";
+    return "попыток";
+  }
+
+  function giveUp() {
+    if (over) return;
+    over = true;
+    say("Загаданное число: " + secret, true);
+    render();
+  }
+
+  function start() {
+    len = parseInt($("len").value, 10);
+    secret = newSecret(len);
+    guess = ""; attempts = 0; over = false;
+    notes = {};
+    renderNotes();
+    $("history").innerHTML = "";
+    $("empty").style.display = "";
+    say("");
+    render();
+  }
+
+  $("submit").onclick = submit;
+  $("back").onclick = backspace;
+  $("giveup").onclick = giveUp;
+  $("restart").onclick = start;
+  $("notesToggle").onchange = function () {
+    notesOn = this.checked;
+    $("notes").className = "notes" + (notesOn ? " on" : "");
+    renderPad();
+  };
+  $("notesClear").onclick = function () { notes = {}; renderNotes(); renderPad(); };
+  $("len").onchange = start;
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target && e.target.tagName === "SELECT") return;
+    if (e.key >= "1" && e.key <= "9") addDigit(e.key);
+    else if (e.key === "Backspace") backspace();
+    else if (e.key === "Enter") { e.preventDefault(); over ? start() : submit(); }
+  });
+
+  start();
+})();
+</script>
+</body>
+</html>
