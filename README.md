@@ -9,3 +9,7 @@
 [Спектрограмма](https://romanautilus.github.io/index/spectrogram.html)
 
 [Калькулятор расчёта количества олигонуклеотидов](https://romanautilus.github.io/index/OligoCalc.html)
+
+## Игры:
+
+Ханойская башня
