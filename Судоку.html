@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Судоку</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    color: #e8eef3;
+  }
+  h1 {
+    font-size: 26px;
+    margin-bottom: 12px;
+    text-shadow: 2px 2px 6px rgba(0,0,0,0.5);
+    letter-spacing: 1px;
+  }
+  .topbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.07);
+    padding: 10px 16px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    backdrop-filter: blur(8px);
+  }
+  .topbar label { font-weight: 600; font-size: 14px; }
+  select, button {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+  }
+  select { background: #fff; color: #203a43; }
+  button {
+    background: #2ecc71;
+    color: #fff;
+    transition: transform 0.1s, filter 0.2s;
+  }
+  button:hover { filter: brightness(1.15); }
+  button:active { transform: scale(0.96); }
+  button.secondary { background: #3498db; }
+
+  .game {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  .board-wrap {
+    position: relative;
+    background: #0d1b22;
+    padding: 6px;
+    border-radius: 10px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+  }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(9, 46px);
+    grid-template-rows: repeat(9, 46px);
+    gap: 0;
+    background: #0d1b22;
+  }
+  .cell {
+    position: relative;
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    background: #1c2b33;
+    color: #6ec6ff;
+    border: 1px solid #26383f;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.1s;
+  }
+  .cell.fixed {
+    background: #16222a;
+    color: #f0f4f8;
+    cursor: default;
+  }
+  .cell.bt { border-top: 3px solid #6ec6ff; }
+  .cell.bb { border-bottom: 3px solid #6ec6ff; }
+  .cell.bl { border-left: 3px solid #6ec6ff; }
+  .cell.br { border-right: 3px solid #6ec6ff; }
+  .cell.peer { background: #24343d; }
+  .cell.same { background: #2c4753; }
+  .cell.selected { background: #1e6f9f !important; box-shadow: inset 0 0 0 2px #6ec6ff; }
+  .cell.conflict { color: #ff5252 !important; }
+
+  .candidates {
+    position: absolute;
+    inset: 2px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    font-size: 11px;
+    font-weight: 600;
+    color: #8ab4c4;
+    pointer-events: none;
+  }
+  .candidates span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .candidates span.marked { color: #ffb400; }
+
+  .side {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 230px;
+  }
+  .panel {
+    background: rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .panel h3 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    color: #6ec6ff;
+  }
+  .numpad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .numpad button {
+    font-size: 22px;
+    padding: 10px 0;
+    background: #2c5364;
+    color: #fff;
+  }
+  .numpad button.warn { background: #c0392b; }
+  .numpad button:hover { filter: brightness(1.25); }
+  .mode-toggle {
+    display: flex;
+    gap: 8px;
+  }
+  .mode-toggle button {
+    flex: 1;
+    background: #2c5364;
+    padding: 10px;
+    font-size: 13px;
+  }
+  .mode-toggle button.active {
+    background: #2ecc71;
+    color: #08302b;
+    box-shadow: 0 0 0 2px #6ec6ff inset;
+  }
+  .status {
+    font-size: 14px;
+    min-height: 20px;
+    text-align: center;
+    color: #ffb400;
+    font-weight: 600;
+  }
+  .status.win { color: #2ecc71; font-size: 16px; }
+  .legend {
+    font-size: 11px;
+    opacity: 0.75;
+    line-height: 1.5;
+  }
+  .legend b { color: #ffb400; }
+
+  @media (max-width: 560px) {
+    .board { grid-template-columns: repeat(9, 34px); grid-template-rows: repeat(9, 34px); }
+    .cell { width: 34px; height: 34px; font-size: 17px; }
+    .candidates { font-size: 8px; }
+    h1 { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🧩 Судоку</h1>
+
+<div class="topbar">
+  <label for="difficulty">Сложность:</label>
+  <select id="difficulty">
+    <option value="easy">Лёгкая</option>
+    <option value="medium" selected>Средняя</option>
+    <option value="hard">Сложная</option>
+  </select>
+  <button id="newGame">Новая игра</button>
+  <button id="checkBtn" class="secondary">Проверить</button>
+  <button id="clearBtn" class="secondary">Очистить заметки</button>
+</div>
+
+<div class="game">
+  <div class="board-wrap">
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="side">
+    <div class="panel">
+      <h3>Ввод цифры</h3>
+      <div class="numpad" id="numpad"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Режим</h3>
+      <div class="mode-toggle">
+        <button id="modeNormal" class="active">Цифра</button>
+        <button id="modeCandidate">Кандидат</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="panel legend">
+      <b>ЛКМ</b> — выбрать клетку.<br>
+      <b>1–9</b> — поставить цифру/кандидата.<br>
+      <b>Backspace/Delete</b> — очистить клетку.<br>
+      <b>Режим «Кандидат»</b> — маленькие числа для гипотез (можно несколько в одной клетке).<br>
+      <b>Повторный ввод</b> кандидата — удалить его.
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const boardEl = document.getElementById('board');
+  const numpadEl = document.getElementById('numpad');
+  const statusEl = document.getElementById('status');
+  const difficultySelect = document.getElementById('difficulty');
+  const newGameBtn = document.getElementById('newGame');
+  const checkBtn = document.getElementById('checkBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const modeNormalBtn = document.getElementById('modeNormal');
+  const modeCandidateBtn = document.getElementById('modeCandidate');
+
+  // puzzle[solution] 81 цифр, 0 — пусто
+  let solution = new Array(81).fill(0);
+  let puzzle = new Array(81).fill(0);      // изначальное поле
+  let current = new Array(81).fill(0);     // текущие цифры
+  let candidates = Array.from({length: 81}, () => new Set());
+  let fixed = new Array(81).fill(false);
+  let selected = null;
+  let mode = 'normal';
+
+  const cellEls = [];
+
+  // ---------- Генерация судоку ----------
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function isValid(grid, idx, val) {
+    const r = Math.floor(idx / 9), c = idx % 9;
+    for (let i = 0; i < 9; i++) {
+      if (grid[r * 9 + i] === val) return false;
+      if (grid[i * 9 + c] === val) return false;
+    }
+    const br = Math.floor(r / 3) * 3, bc = Math.floor(c / 3) * 3;
+    for (let i = 0; i < 3; i++)
+      for (let j = 0; j < 3; j++)
+        if (grid[(br + i) * 9 + (bc + j)] === val) return false;
+    return true;
+  }
+
+  function solveGrid(grid, pos = 0) {
+    if (pos === 81) return true;
+    if (grid[pos] !== 0) return solveGrid(grid, pos + 1);
+    const nums = shuffle([1,2,3,4,5,6,7,8,9]);
+    for (const n of nums) {
+      if (isValid(grid, pos, n)) {
+        grid[pos] = n;
+        if (solveGrid(grid, pos + 1)) return true;
+        grid[pos] = 0;
+      }
+    }
+    return false;
+  }
+
+  function countSolutions(grid, limit = 2, pos = 0) {
+    // упрощённый счётчик — достаточно найти > 1
+    while (pos < 81 && grid[pos] !== 0) pos++;
+    if (pos === 81) return 1;
+    let count = 0;
+    for (let n = 1; n <= 9; n++) {
+      if (isValid(grid, pos, n)) {
+        grid[pos] = n;
+        count += countSolutions(grid, limit - count, pos + 1);
+        grid[pos] = 0;
+        if (count >= limit) break;
+      }
+    }
+    return count;
+  }
+
+  function generatePuzzle(difficulty) {
+    // Полное решение
+    solution = new Array(81).fill(0);
+    solveGrid(solution);
+    const sol = solution.slice();
+
+    // Количество удаляемых клеток по уровню
+    const targetEmpty = { easy: 40, medium: 50, hard: 58 }[difficulty];
+
+    // Клетки для удаления
+    const order = shuffle([...Array(81).keys()]);
+    const work = sol.slice();
+    let removed = 0;
+    for (const idx of order) {
+      if (removed >= targetEmpty) break;
+      const backup = work[idx];
+      work[idx] = 0;
+      // Проверяем единственность
+      if (countSolutions(work.slice()) !== 1) {
+        work[idx] = backup;
+      } else {
+        removed++;
+      }
+    }
+    puzzle = work;
+  }
+
+  // ---------- Отрисовка ----------
+  function buildBoard() {
+    boardEl.innerHTML = '';
+    cellEls.length = 0;
+    for (let i = 0; i < 81; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.idx = i;
+      const r = Math.floor(i / 9), c = i % 9;
+      if (r % 3 === 0 && r !== 0) cell.classList.add('bt');
+      if (c % 3 === 0 && c !== 0) cell.classList.add('bl');
+      if (r === 8) cell.classList.add('bb');
+      if (c === 8) cell.classList.add('br');
+
+      const cand = document.createElement('div');
+      cand.className = 'candidates';
+      for (let d = 1; d <= 9; d++) {
+        const s = document.createElement('span');
+        cand.appendChild(s);
+      }
+      cell.appendChild(cand);
+
+      cell.addEventListener('click', () => selectCell(i));
+      boardEl.appendChild(cell);
+      cellEls.push(cell);
+    }
+  }
+
+  function render() {
+    for (let i = 0; i < 81; i++) {
+      const cell = cellEls[i];
+      const candEl = cell.querySelector('.candidates');
+
+      cell.classList.remove('fixed', 'selected', 'conflict', 'peer', 'same');
+      // Текст цифры
+      while (cell.firstChild && cell.firstChild.nodeType === 3) cell.removeChild(cell.firstChild);
+      // Восстановим кандидатов (уже есть). Но текст цифры нужно вставить перед candidates
+      const digit = current[i];
+      cell.firstChild && cell.firstChild.className === 'candidates';
+      // удалим прежний текст, если был
+      [...cell.childNodes].forEach(n => { if (n.nodeType === 3) cell.removeChild(n); });
+      candEl.style.display = 'none';
+      if (digit) {
+        cell.insertBefore(document.createTextNode(digit), candEl);
+      } else if (candidates[i].size) {
+        candEl.style.display = 'grid';
+        for (let d = 1; d <= 9; d++) {
+          const span = candEl.children[d - 1];
+          span.textContent = candidates[i].has(d) ? d : '';
+        }
+      } else {
+        for (let d = 0; d < 9; d++) candEl.children[d].textContent = '';
+      }
+
+      if (fixed[i]) cell.classList.add('fixed');
+    }
+
+    // Подсветка выбранной клетки, её строки/столбца/блока и одинаковых цифр
+    if (selected !== null) {
+      const sr = Math.floor(selected / 9), sc = selected % 9;
+      const sbr = Math.floor(sr / 3), sbc = Math.floor(sc / 3);
+      const selVal = current[selected];
+      for (let i = 0; i < 81; i++) {
+        const r = Math.floor(i / 9), c = i % 9;
+        const br = Math.floor(r / 3), bc = Math.floor(c / 3);
+        if (r === sr || c === sc || (br === sbr && bc === sbc)) {
+          if (i !== selected) cellEls[i].classList.add('peer');
+        }
+        if (selVal && current[i] === selVal && i !== selected) {
+          cellEls[i].classList.add('same');
+        }
+      }
+      cellEls[selected].classList.add('selected');
+    }
+
+    // Подсветка конфликтов
+    for (let i = 0; i < 81; i++) {
+      if (current[i] && hasConflict(i)) cellEls[i].classList.add('conflict');
+    }
+  }
+
+  function hasConflict(idx) {
+    const v = current[idx];
+    if (!v) return false;
+    const r = Math.floor(idx / 9), c = idx % 9;
+    for (let i = 0; i < 81; i++) {
+      if (i === idx) continue;
+      if (current[i] !== v) continue;
+      const ri = Math.floor(i / 9), ci = i % 9;
+      if (ri === r || ci === c) return true;
+      const br = Math.floor(r / 3) * 3, bc = Math.floor(c / 3) * 3;
+      if (ri >= br && ri < br + 3 && ci >= bc && ci < bc + 3) return true;
+    }
+    return false;
+  }
+
+  function selectCell(i) {
+    if (fixed[i] && !current[i]) { selected = i; render(); return; }
+    if (fixed[i]) { selected = i; render(); return; }
+    selected = i;
+    render();
+  }
+
+  // ---------- Ввод ----------
+  function placeNumber(n) {
+    if (selected === null) { setStatus('Сначала выберите клетку.'); return; }
+    if (fixed[selected]) { setStatus('Эта клетка исходная, её нельзя менять.'); return; }
+
+    if (mode === 'normal') {
+      if (current[selected] === n) {
+        current[selected] = 0;
+      } else {
+        current[selected] = n;
+      }
+      candidates[selected].clear();
+    } else {
+      // Кандидат
+      if (current[selected]) {
+        setStatus('В клетке уже есть цифра. Очистите её для кандидатов.');
+        return;
+      }
+      if (candidates[selected].has(n)) candidates[selected].delete(n);
+      else candidates[selected].add(n);
+    }
+    setStatus('');
+    render();
+    checkWin();
+  }
+
+  function clearSelected() {
+    if (selected === null) return;
+    if (fixed[selected]) { setStatus('Эта клетка исходная.'); return; }
+    current[selected] = 0;
+    candidates[selected].clear();
+    render();
+    setStatus('');
+  }
+
+  function clearAllNotes() {
+    for (let i = 0; i < 81; i++) candidates[i].clear();
+    render();
+    setStatus('Все заметки-кандидаты очищены.');
+  }
+
+  function setStatus(msg, cls) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status' + (cls ? ' ' + cls : '');
+  }
+
+  function checkWin() {
+    // Победа: нет пустых и нет конфликтов
+    for (let i = 0; i < 81; i++) {
+      if (!current[i]) return;
+      if (hasConflict(i)) return;
+    }
+    setStatus('🎉 Победа! Судоку решено!', 'win');
+  }
+
+  function checkProgress() {
+    let filled = 0, conflicts = 0, wrong = 0;
+    for (let i = 0; i < 81; i++) {
+      if (current[i]) {
+        filled++;
+        if (hasConflict(i)) conflicts++;
+        if (current[i] !== solution[i]) wrong++;
+      }
+    }
+    let msg = `Заполнено ${filled}/81. `;
+    if (conflicts) msg += `Конфликтов: ${conflicts}. `;
+    else if (wrong) msg += `Есть неверные цифры. `;
+    else if (filled === 81) msg += 'Всё верно! 🎉';
+    else msg += 'Пока всё верно.';
+    setStatus(msg, conflicts || wrong ? '' : 'win');
+  }
+
+  // ---------- Новая игра ----------
+  function newGame() {
+    const diff = difficultySelect.value;
+    setStatus('Генерация поля…');
+    // Генерация может занять мгновение; делаем через setTimeout, чтобы статус успел отрисоваться
+    setTimeout(() => {
+      generatePuzzle(diff);
+      current = puzzle.slice();
+      candidates = Array.from({length: 81}, () => new Set());
+      fixed = puzzle.map(v => v !== 0);
+      selected = null;
+      render();
+      setStatus(`Новая игра. Сложность: ${diff === 'easy' ? 'лёгкая' : diff === 'medium' ? 'средняя' : 'сложная'}.`);
+    }, 20);
+  }
+
+  // ---------- NumPad ----------
+  function buildNumpad() {
+    numpadEl.innerHTML = '';
+    for (let n = 1; n <= 9; n++) {
+      const btn = document.createElement('button');
+      btn.textContent = n;
+      btn.addEventListener('click', () => placeNumber(n));
+      numpadEl.appendChild(btn);
+    }
+  }
+
+  // ---------- Режимы ----------
+  modeNormalBtn.addEventListener('click', () => {
+    mode = 'normal';
+    modeNormalBtn.classList.add('active');
+    modeCandidateBtn.classList.remove('active');
+  });
+  modeCandidateBtn.addEventListener('click', () => {
+    mode = 'candidate';
+    modeCandidateBtn.classList.add('active');
+    modeNormalBtn.classList.remove('active');
+  });
+
+  // ---------- Клавиатура ----------
+  document.addEventListener('keydown', (e) => {
+    if (e.key >= '1' && e.key <= '9') {
+      e.preventDefault();
+      placeNumber(parseInt(e.key, 10));
+    } else if (e.key === 'Backspace' || e.key === 'Delete') {
+      e.preventDefault();
+      clearSelected();
+    } else if (e.key === 'c' || e.key === 'C') {
+      mode = mode === 'normal' ? 'candidate' : 'normal';
+      modeNormalBtn.classList.toggle('active', mode === 'normal');
+      modeCandidateBtn.classList.toggle('active', mode === 'candidate');
+    }
+  });
+
+  // ---------- Кнопки ----------
+  newGameBtn.addEventListener('click', newGame);
+  checkBtn.addEventListener('click', checkProgress);
+  clearBtn.addEventListener('click', clearAllNotes);
+
+  // ---------- Старт ----------
+  buildBoard();
+  buildNumpad();
+  newGame();
+})();
+</script>
+</body>
+</html>

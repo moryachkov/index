@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Камень-Ножницы-Бумага-Ящерица-Спок</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: radial-gradient(circle at 50% 20%, #1a2a6c, #0b1530 70%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 18px;
+    color: #eaf2ff;
+  }
+  h1 {
+    font-size: 24px;
+    text-align: center;
+    margin-bottom: 4px;
+    background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bcB77, #4d96ff, #b06aff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 0.5px;
+  }
+  .subtitle {
+    font-size: 13px;
+    opacity: 0.7;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  /* --- Арена --- */
+  .arena {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 18px;
+    width: 100%;
+    max-width: 720px;
+  }
+  .side {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .side .label {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    opacity: 0.75;
+    font-weight: 700;
+  }
+  .hand {
+    width: 110px;
+    height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 62px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(255,255,255,0.15);
+    box-shadow: 0 0 24px rgba(77,150,255,0.25) inset;
+    transition: transform 0.15s, box-shadow 0.3s, border-color 0.3s;
+    user-select: none;
+  }
+  .hand.win-glow { box-shadow: 0 0 30px #2ecc71, 0 0 60px rgba(46,204,113,0.4); border-color: #2ecc71; }
+  .hand.lose-glow { box-shadow: 0 0 30px #ff5252, 0 0 60px rgba(255,82,82,0.4); border-color: #ff5252; }
+  .hand.draw-glow { box-shadow: 0 0 30px #ffd93d, 0 0 60px rgba(255,217,61,0.4); border-color: #ffd93d; }
+  .hand.shake { animation: shake 0.45s ease-in-out; }
+  @keyframes shake {
+    0%,100% { transform: rotate(0); }
+    20% { transform: rotate(-18deg) translateY(-4px); }
+    40% { transform: rotate(14deg) translateY(-8px); }
+    60% { transform: rotate(-10deg) translateY(-4px); }
+    80% { transform: rotate(6deg); }
+  }
+  .vs {
+    font-size: 22px;
+    font-weight: 900;
+    opacity: 0.6;
+    letter-spacing: 1px;
+  }
+  .score {
+    font-size: 20px;
+    font-weight: 800;
+    color: #ffd93d;
+  }
+
+  /* --- Счёт --- */
+  .scoreboard {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .score-card {
+    background: rgba(255,255,255,0.07);
+    padding: 8px 16px;
+    border-radius: 10px;
+    text-align: center;
+    min-width: 90px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .score-card .num {
+    font-size: 24px;
+    font-weight: 800;
+  }
+  .score-card .cap {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.7;
+  }
+  .score-card.player .num { color: #4d96ff; }
+  .score-card.cpu .num { color: #ff6b6b; }
+  .score-card.draw .num { color: #ffd93d; }
+
+  /* --- Результат --- */
+  .result {
+    font-size: 20px;
+    font-weight: 800;
+    text-align: center;
+    min-height: 32px;
+    margin-bottom: 8px;
+    transition: color 0.2s;
+  }
+  .result.win { color: #2ecc71; }
+  .result.lose { color: #ff5252; }
+  .result.draw { color: #ffd93d; }
+  .detail {
+    font-size: 13px;
+    text-align: center;
+    opacity: 0.8;
+    min-height: 20px;
+    margin-bottom: 16px;
+  }
+  .detail b { color: #ffd93d; }
+
+  /* --- Выбор --- */
+  .choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 16px;
+    max-width: 720px;
+  }
+  .choice-btn {
+    width: 92px;
+    height: 92px;
+    border-radius: 16px;
+    border: 2px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
+    color: #eaf2ff;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: transform 0.12s, background 0.2s, border-color 0.2s;
+    user-select: none;
+  }
+  .choice-btn .icon { font-size: 38px; }
+  .choice-btn .name { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
+  .choice-btn:hover { background: rgba(255,255,255,0.14); border-color: #4d96ff; transform: translateY(-3px); }
+  .choice-btn:active { transform: scale(0.95); }
+  .choice-btn:disabled { opacity: 0.4; cursor: wait; transform: none; }
+
+  /* --- Управление --- */
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  button.ctrl {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    background: #2c5364;
+    color: #eaf2ff;
+    transition: filter 0.2s, transform 0.1s;
+  }
+  button.ctrl:hover { filter: brightness(1.3); }
+  button.ctrl:active { transform: scale(0.96); }
+
+  /* --- Правила --- */
+  .rules {
+    margin-top: 22px;
+    max-width: 720px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    opacity: 0.9;
+  }
+  .rules h3 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    color: #4d96ff;
+  }
+  .rules .pair { display: inline-block; margin: 2px 10px 2px 0; white-space: nowrap; }
+  .rules .pair b { color: #ffd93d; }
+
+  @media (max-width: 560px) {
+    h1 { font-size: 18px; }
+    .hand { width: 84px; height: 84px; font-size: 46px; }
+    .choice-btn { width: 76px; height: 76px; }
+    .choice-btn .icon { font-size: 30px; }
+    .choice-btn .name { font-size: 10px; }
+    .vs { font-size: 16px; }
+    .score { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Камень · Ножницы · Бумага · Ящерица · Спок</h1>
+<div class="subtitle">Выберите жест — компьютер ответит</div>
+
+<!-- Арена -->
+<div class="arena">
+  <div class="side">
+    <div class="label">Вы</div>
+    <div class="hand" id="playerHand">❔</div>
+    <div class="score" id="playerScore">0</div>
+  </div>
+  <div class="vs">VS</div>
+  <div class="side">
+    <div class="label">Компьютер</div>
+    <div class="hand" id="cpuHand">❔</div>
+    <div class="score" id="cpuScore">0</div>
+  </div>
+</div>
+
+<!-- Счёт -->
+<div class="scoreboard">
+  <div class="score-card player">
+    <div class="num" id="statPlayer">0</div>
+    <div class="cap">Победы</div>
+  </div>
+  <div class="score-card draw">
+    <div class="num" id="statDraw">0</div>
+    <div class="cap">Ничьи</div>
+  </div>
+  <div class="score-card cpu">
+    <div class="num" id="statCpu">0</div>
+    <div class="cap">Поражения</div>
+  </div>
+</div>
+
+<div class="result" id="result">Сделайте выбор</div>
+<div class="detail" id="detail"></div>
+
+<!-- Выбор -->
+<div class="choices" id="choices"></div>
+
+<!-- Управление -->
+<div class="controls">
+  <button class="ctrl" id="resetBtn">Сбросить счёт</button>
+</div>
+
+<!-- Правила -->
+<div class="rules">
+  <h3>Правила</h3>
+  <span class="pair"><b>Ножницы</b> режут Бумагу</span>
+  <span class="pair"><b>Бумага</b> накрывает Камень</span>
+  <span class="pair"><b>Камень</b> давит Ящерицу</span>
+  <span class="pair"><b>Ящерица</b> отравляет Спока</span>
+  <span class="pair"><b>Спок</b> ломает Ножницы</span>
+  <span class="pair"><b>Ножницы</b> обезглавливают Ящерицу</span>
+  <span class="pair"><b>Ящерица</b> ест Бумагу</span>
+  <span class="pair"><b>Бумага</b> подставляет Спока</span>
+  <span class="pair"><b>Спок</b> испаряет Камень</span>
+  <span class="pair"><b>Камень</b> тупит Ножницы</span>
+</div>
+
+<script>
+(function () {
+  // Порядок: камень, ножницы, бумага, ящерица, спок
+  const MOVES = {
+    rock:     { name: 'Камень',   icon: '✊', beats: ['scissors', 'lizard'] },
+    scissors: { name: 'Ножницы',  icon: '✌️', beats: ['paper', 'lizard'] },
+    paper:    { name: 'Бумага',   icon: '✋', beats: ['rock', 'spock'] },
+    lizard:   { name: 'Ящерица',  icon: '🦎', beats: ['spock', 'paper'] },
+    spock:    { name: 'Спок',     icon: '🖖', beats: ['scissors', 'rock'] }
+  };
+  const KEYS = Object.keys(MOVES);
+
+  // Глаголы для описания результата
+  const VERB = {
+    'scissors>paper':   'режут',
+    'paper>rock':       'накрывает',
+    'rock>lizard':      'давит',
+    'lizard>spock':     'отравляет',
+    'spock>scissors':   'ломает',
+    'scissors>lizard':  'обезглавливают',
+    'lizard>paper':     'ест',
+    'paper>spock':      'подставляет',
+    'spock>rock':       'испаряет',
+    'rock>scissors':    'тупит'
+  };
+
+  // DOM
+  const playerHandEl = document.getElementById('playerHand');
+  const cpuHandEl = document.getElementById('cpuHand');
+  const playerScoreEl = document.getElementById('playerScore');
+  const cpuScoreEl = document.getElementById('cpuScore');
+  const statPlayerEl = document.getElementById('statPlayer');
+  const statDrawEl = document.getElementById('statDraw');
+  const statCpuEl = document.getElementById('statCpu');
+  const resultEl = document.getElementById('result');
+  const detailEl = document.getElementById('detail');
+  const choicesEl = document.getElementById('choices');
+  const resetBtn = document.getElementById('resetBtn');
+
+  let stats = { player: 0, cpu: 0, draw: 0 };
+  let busy = false;
+
+  // Кнопки выбора
+  KEYS.forEach(key => {
+    const m = MOVES[key];
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.dataset.move = key;
+    btn.innerHTML = `<span class="icon">${m.icon}</span><span class="name">${m.name}</span>`;
+    btn.addEventListener('click', () => play(key));
+    choicesEl.appendChild(btn);
+  });
+
+  function setHands(ph, ch, className) {
+    playerHandEl.textContent = ph;
+    cpuHandEl.textContent = ch;
+    playerHandEl.className = 'hand';
+    cpuHandEl.className = 'hand';
+    if (className) {
+      playerHandEl.classList.add(className);
+      cpuHandEl.classList.add(className);
+    }
+  }
+
+  function updateScores() {
+    statPlayerEl.textContent = stats.player;
+    statDrawEl.textContent = stats.draw;
+    statCpuEl.textContent = stats.cpu;
+    // На арене — текущий счёт за сессию (можно те же значения)
+    playerScoreEl.textContent = stats.player;
+    cpuScoreEl.textContent = stats.cpu;
+  }
+
+  function disableButtons(disabled) {
+    document.querySelectorAll('.choice-btn').forEach(b => b.disabled = disabled);
+  }
+
+  function play(playerMove) {
+    if (busy) return;
+    busy = true;
+    disableButtons(true);
+
+    const cpuMove = KEYS[Math.floor(Math.random() * KEYS.length)];
+
+    // Анимация "перемешивания"
+    let tick = 0;
+    const shuffling = setInterval(() => {
+      const rand = KEYS[Math.floor(Math.random() * KEYS.length)];
+      playerHandEl.textContent = MOVES[rand].icon;
+      const rand2 = KEYS[Math.floor(Math.random() * KEYS.length)];
+      cpuHandEl.textContent = MOVES[rand2].icon;
+      playerHandEl.className = 'hand';
+      cpuHandEl.className = 'hand';
+      if (++tick >= 8) {
+        clearInterval(shuffling);
+        finish(playerMove, cpuMove);
+      }
+    }, 55);
+  }
+
+  function finish(playerMove, cpuMove) {
+    setHands(MOVES[playerMove].icon, MOVES[cpuMove].icon);
+    playerHandEl.classList.add('shake');
+    cpuHandEl.classList.add('shake');
+
+    let outcome; // 'win' | 'lose' | 'draw'
+    if (playerMove === cpuMove) {
+      outcome = 'draw';
+      stats.draw++;
+      resultEl.textContent = 'Ничья!';
+      resultEl.className = 'result draw';
+      detailEl.innerHTML = `Оба показали <b>${MOVES[playerMove].name}</b>.`;
+      playerHandEl.classList.add('draw-glow');
+      cpuHandEl.classList.add('draw-glow');
+    } else if (MOVES[playerMove].beats.includes(cpuMove)) {
+      outcome = 'win';
+      stats.player++;
+      resultEl.textContent = 'Вы победили! 🎉';
+      resultEl.className = 'result win';
+      detailEl.innerHTML = describeWin(playerMove, cpuMove);
+      playerHandEl.classList.add('win-glow');
+      cpuHandEl.classList.add('lose-glow');
+    } else {
+      outcome = 'lose';
+      stats.cpu++;
+      resultEl.textContent = 'Компьютер победил 😢';
+      resultEl.className = 'result lose';
+      detailEl.innerHTML = describeWin(cpuMove, playerMove);
+      playerHandEl.classList.add('lose-glow');
+      cpuHandEl.classList.add('win-glow');
+    }
+
+    updateScores();
+
+    // Убираем анимацию тряски через некоторое время
+    setTimeout(() => {
+      playerHandEl.classList.remove('shake');
+      cpuHandEl.classList.remove('shake');
+      busy = false;
+      disableButtons(false);
+    }, 500);
+  }
+
+  function describeWin(winner, loser) {
+    const w = MOVES[winner], l = MOVES[loser];
+    const verb = VERB[`${winner}>${loser}`] || 'побеждает';
+    return `<b>${w.name}</b> ${verb} <b>${l.name}</b>.`;
+  }
+
+  resetBtn.addEventListener('click', () => {
+    stats = { player: 0, cpu: 0, draw: 0 };
+    updateScores();
+    resultEl.textContent = 'Сделайте выбор';
+    resultEl.className = 'result';
+    detailEl.textContent = '';
+    setHands('❔', '❔');
+  });
+
+  // Горячие клавиши 1–5
+  document.addEventListener('keydown', (e) => {
+    const idx = parseInt(e.key, 10);
+    if (idx >= 1 && idx <= 5) {
+      e.preventDefault();
+      play(KEYS[idx - 1]);
+    }
+  });
+
+  // Инициализация
+  updateScores();
+})();
+</script>
+</body>
+</html>
