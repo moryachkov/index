@@ -14,7 +14,7 @@
 
 [Калькулятор расчёта количества олигонуклеотидов](https://romanautilus.github.io/index/OligoCalc.html)
 
-## Игры:
+## Игры
 
 [Ханойская башня](https://romanautilus.github.io/index/HanoiTower.html)
 
