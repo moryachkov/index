@@ -4,22 +4,22 @@
 
 ## 3D-модели
 
-[Чёрная дыра в 3D](https://romanautilus.github.io/index/Black%20Hole%203D.html)
+[Чёрная дыра в 3D](https://moryachkov.github.io/index/Black%20Hole%203D.html)
 
 ## Инструменты
 
-[Калькулятор релятивистских эффектов](https://romanautilus.github.io/index/Realtivity%20Calc.html)
+[Калькулятор релятивистских эффектов](https://moryachkov.github.io/index/Realtivity%20Calc.html)
 
-[Спектрограмма](https://romanautilus.github.io/index/spectrogram.html)
+[Спектрограмма](https://moryachkov.github.io/index/spectrogram.html)
 
-[Калькулятор расчёта количества олигонуклеотидов](https://romanautilus.github.io/index/OligoCalc.html)
+[Калькулятор расчёта количества олигонуклеотидов](https://moryachkov.github.io/index/OligoCalc.html)
 
 ## Игры
 
-[Ханойская башня](https://romanautilus.github.io/index/HanoiTower.html)
+[Ханойская башня](https://moryachkov.github.io/index/HanoiTower.html)
 
-[Быки и коровы](https://romanautilus.github.io/index/bulls-and-cows.html)
+[Быки и коровы](https://moryachkov.github.io/index/bulls-and-cows.html)
 
-[Судоку](https://romanautilus.github.io/index/sudoku.html)
+[Судоку](https://moryachkov.github.io/index/sudoku.html)
 
-[Камень · Ножницы · Бумага · Ящерица · Спок](https://romanautilus.github.io/index/Stone-Scissors-Paper-Lizard-Spock.html)
+[Камень · Ножницы · Бумага · Ящерица · Спок](https://moryachkov.github.io/index/Stone-Scissors-Paper-Lizard-Spock.html)
