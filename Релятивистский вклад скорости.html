@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Релятивистский вклад скорости · β, γ, τ, энергия, импульс</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+        body {
+            background: linear-gradient(145deg, #0b0f1a 0%, #1a1f2e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 1.5rem;
+            color: #eef2ff;
+        }
+        .app {
+            max-width: 1500px;
+            width: 100%;
+            background: rgba(20, 25, 40, 0.75);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 2.5rem;
+            padding: 2rem 2rem 1.8rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), inset 0 1px 2px rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(120, 150, 255, 0.2);
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin: 0 0 0.25rem 0;
+            background: linear-gradient(135deg, #b7c9ff, #8aa4ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 10px rgba(100, 150, 255, 0.3);
+        }
+        .subhead {
+            color: #9aa9c9;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+            border-left: 3px solid #4e6ef2;
+            padding-left: 0.9rem;
+            font-weight: 400;
+        }
+        .main-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.8rem;
+            justify-content: center;
+        }
+        .left-col {
+            flex: 3 1 620px;
+            min-width: 380px;
+        }
+        .right-col {
+            flex: 2 1 440px;
+            min-width: 340px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+        .graph-card {
+            background: #0e1320;
+            border-radius: 2rem;
+            padding: 1.3rem 1.2rem 1.5rem;
+            border: 1px solid #2d3a5e;
+            box-shadow: inset 0 0 15px #00000033, 0 10px 20px -5px #00000080;
+            position: relative;
+        }
+        .curve-toggles {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.6rem;
+            padding: 0.4rem 0.6rem;
+            background: #0a101d;
+            border-radius: 1rem;
+            border: 1px solid #28345a;
+            font-size: 0.8rem;
+        }
+        .curve-toggles label {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            cursor: pointer;
+            color: #a5b9e6;
+            font-weight: 500;
+        }
+        .curve-toggles input[type="checkbox"] {
+            accent-color: #4e6ef2;
+            width: 14px;
+            height: 14px;
+        }
+        .slider-block {
+            margin-top: 0.6rem;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.95rem;
+            color: #b7c8ff;
+            margin-bottom: 0.3rem;
+            font-weight: 500;
+        }
+        .slider-label span:last-child {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            background: #1e2840;
+            padding: 0.15rem 0.9rem;
+            border-radius: 30px;
+            font-weight: 600;
+            color: #c3d2ff;
+            border: 1px solid #3c4f88;
+            font-size: 0.85rem;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 7px;
+            -webkit-appearance: none;
+            background: linear-gradient(90deg, #1e2a4a 0%, #4e6ef2 70%, #c3d2ff 100%);
+            border-radius: 10px;
+            outline: none;
+            margin: 0.6rem 0 0.3rem;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            background: #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 15px #6d8aff, 0 0 5px #fff;
+            cursor: pointer;
+            border: 2px solid #8aa4ff;
+            transition: 0.1s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            background: #f0f4ff;
+        }
+        .range-toggle {
+            display: flex;
+            gap: 0.4rem;
+            margin-top: 0.2rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .range-toggle button {
+            background: #1e2840;
+            border: 1px solid #3c4f88;
+            color: #b7c8ff;
+            padding: 0.25rem 0.8rem;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: 0.15s;
+            font-weight: 500;
+        }
+        .range-toggle button.active {
+            background: #4e6ef2;
+            border-color: #8aa4ff;
+            color: #ffffff;
+            box-shadow: 0 0 15px #4e6ef280;
+        }
+        .range-toggle button:hover {
+            background: #2a3a66;
+            border-color: #6d8aff;
+        }
+        .tooltip {
+            position: absolute;
+            pointer-events: none;
+            background: #1a243c;
+            border: 1px solid #4e6ef2;
+            border-radius: 1rem;
+            padding: 0.6rem 0.9rem;
+            font-size: 0.8rem;
+            color: #eef2ff;
+            box-shadow: 0 10px 30px #00000080;
+            opacity: 0;
+            transition: opacity 0.15s;
+            z-index: 100;
+            max-width: 260px;
+            line-height: 1.4;
+        }
+        .tooltip.visible {
+            opacity: 1;
+        }
+        .tooltip .tt-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        .tooltip .tt-label {
+            color: #8e9fc7;
+        }
+        .tooltip .tt-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        .tooltip .tt-title {
+            font-weight: 600;
+            color: #b7c9ff;
+            margin-bottom: 0.3rem;
+            border-bottom: 1px solid #2d3a5e;
+            padding-bottom: 0.2rem;
+        }
+        .formula-card {
+            background: #0a101d;
+            border-radius: 1.6rem;
+            padding: 1.2rem 1.2rem;
+            border: 1px solid #28345a;
+            box-shadow: 0 10px 25px #00000055;
+        }
+        .formula-title {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #9eb1ff;
+            margin: 0 0 0.8rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .formula-title span {
+            background: #1e2947;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: #b7ceff;
+        }
+        .formula-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.6rem;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.82rem;
+        }
+        .formula-item {
+            background: #121a2d;
+            border-radius: 0.9rem;
+            padding: 0.5rem 0.9rem;
+            border-left: 3px solid #4e6ef2;
+            color: #d4e0ff;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            justify-content: space-between;
+        }
+        .formula-item .expr {
+            color: #ffffff;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .formula-item .desc {
+            color: #8e9fc7;
+            font-size: 0.75rem;
+            font-family: system-ui, sans-serif;
+            margin-left: 0.4rem;
+        }
+        .values-panel {
+            background: #0e1320;
+            border-radius: 1.6rem;
+            padding: 1.1rem;
+            border: 1px solid #2d3a5e;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .value-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 1px solid #253154;
+            padding-bottom: 0.4rem;
+        }
+        .value-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .value-label {
+            color: #a5b9e6;
+            font-size: 0.82rem;
+        }
+        .value-number {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #eef2ff, #b7c9ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+        }
+        .value-number.momentum {
+            background: linear-gradient(135deg, #ffb347, #ff8c00);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1.55 / 1;
+            background: #0c111e;
+            border-radius: 1.4rem;
+            padding: 0.2rem;
+        }
+        canvas#relCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            border-radius: 1.3rem;
+            cursor: crosshair;
+            background: radial-gradient(circle at 20% 30%, #151d30, #070b14);
+        }
+        .legend {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.6rem;
+            font-size: 0.7rem;
+            color: #a5b9e6;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .legend-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 2px;
+        }
+        .note {
+            font-size: 0.7rem;
+            color: #7184b0;
+            margin-top: 0.4rem;
+            text-align: center;
+        }
+        .beta-range-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: #6377a3;
+            margin-top: 0.1rem;
+            padding: 0 0.2rem;
+        }
+        .speed-info {
+            text-align: center;
+            margin-top: 0.4rem;
+            font-size: 0.95rem;
+            color: #b7c9ff;
+        }
+        .speed-info .speed-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #ffffff;
+            background: #1a243c;
+            padding: 0.1rem 0.9rem;
+            border-radius: 40px;
+            border: 1px solid #4e6ef2;
+            box-shadow: 0 0 20px #4e6ef240;
+        }
+        .speed-info .speed-unit {
+            color: #8a9bcb;
+            font-size: 0.8rem;
+            margin-left: 0.2rem;
+        }
+        .distance-card {
+            background: #0a101d;
+            border-radius: 1.6rem;
+            padding: 1.1rem;
+            border: 1px solid #28345a;
+            box-shadow: 0 10px 25px #00000055;
+        }
+        .distance-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #9eb1ff;
+            margin: 0 0 0.6rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .distance-input-row {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.6rem;
+            flex-wrap: wrap;
+        }
+        .distance-input-row label {
+            color: #a5b9e6;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        .distance-input-row input {
+            flex: 1;
+            min-width: 60px;
+            background: #121a2d;
+            border: 1px solid #3c4f88;
+            border-radius: 30px;
+            padding: 0.3rem 0.7rem;
+            color: #eef2ff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            outline: none;
+        }
+        .distance-input-row select {
+            background: #121a2d;
+            border: 1px solid #3c4f88;
+            border-radius: 30px;
+            padding: 0.3rem 0.6rem;
+            color: #eef2ff;
+            font-size: 0.8rem;
+            outline: none;
+            cursor: pointer;
+        }
+        .distance-input-row input:focus,
+        .distance-input-row select:focus {
+            border-color: #6d8aff;
+            box-shadow: 0 0 15px #4e6ef280;
+        }
+        .distance-result {
+            background: #121a2d;
+            border-radius: 0.9rem;
+            padding: 0.5rem 0.9rem;
+            border-left: 3px solid #6fe06f;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 0.4rem;
+        }
+        .distance-result:last-child {
+            margin-bottom: 0;
+        }
+        .distance-result .res-label {
+            color: #a5b9e6;
+            font-size: 0.75rem;
+        }
+        .distance-result .res-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #d4e0ff;
+        }
+        .distance-result .res-unit {
+            font-size: 0.7rem;
+            color: #6b7fb0;
+            margin-left: 0.2rem;
+        }
+        .reverse-card {
+            background: #0a101d;
+            border-radius: 1.6rem;
+            padding: 1.1rem;
+            border: 1px solid #28345a;
+            box-shadow: 0 10px 25px #00000055;
+            margin-top: 0.4rem;
+        }
+        .reverse-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #9eb1ff;
+            margin: 0 0 0.6rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .reverse-row {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.6rem;
+            flex-wrap: wrap;
+        }
+        .reverse-row label {
+            color: #a5b9e6;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        .reverse-row input {
+            width: 80px;
+            background: #121a2d;
+            border: 1px solid #3c4f88;
+            border-radius: 30px;
+            padding: 0.3rem 0.7rem;
+            color: #eef2ff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            outline: none;
+        }
+        .reverse-row button {
+            background: #4e6ef2;
+            border: 1px solid #8aa4ff;
+            color: #fff;
+            padding: 0.3rem 1rem;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: 0.15s;
+        }
+        .reverse-row button:hover {
+            background: #6d8aff;
+            box-shadow: 0 0 20px #4e6ef280;
+        }
+        .reverse-result {
+            background: #121a2d;
+            border-radius: 0.9rem;
+            padding: 0.5rem 0.9rem;
+            border-left: 3px solid #ff7b4e;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 0.4rem;
+        }
+        .reverse-result:last-child {
+            margin-bottom: 0;
+        }
+        .reverse-result .res-label {
+            color: #a5b9e6;
+            font-size: 0.75rem;
+        }
+        .reverse-result .res-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #ff7b4e;
+        }
+        .explain-box {
+            margin-top: 0.8rem;
+            background: #0a101d;
+            border-radius: 1.4rem;
+            padding: 0.9rem 1.2rem;
+            border: 1px solid #28345a;
+            border-left: 4px solid #8aa4ff;
+            color: #c3d2ff;
+            font-size: 0.8rem;
+            line-height: 1.5;
+        }
+        .explain-box strong {
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .explain-box .highlight {
+            color: #6fe06f;
+            font-weight: 500;
+        }
+        .speed-manual-block {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            margin-top: 0.6rem;
+        }
+        .speed-manual-item {
+            background: #0a101d;
+            border-radius: 1.2rem;
+            padding: 0.7rem 1rem;
+            border: 1px solid #28345a;
+        }
+        .speed-manual-item.observer {
+            border-left: 4px solid #4e8cff;
+        }
+        .speed-manual-item.traveler {
+            border-left: 4px solid #ff7b4e;
+        }
+        .speed-manual-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .speed-manual-title .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .speed-manual-title .observer-dot { background: #4e8cff; }
+        .speed-manual-title .traveler-dot { background: #ff7b4e; }
+        .speed-manual-row {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+        .speed-manual-row label {
+            color: #a5b9e6;
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+        .speed-manual-row input {
+            width: 100px;
+            background: #121a2d;
+            border: 1px solid #3c4f88;
+            border-radius: 30px;
+            padding: 0.3rem 0.7rem;
+            color: #eef2ff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            outline: none;
+        }
+        .speed-manual-row input:focus {
+            border-color: #6d8aff;
+            box-shadow: 0 0 15px #4e6ef280;
+        }
+        .speed-manual-row .unit-label {
+            color: #6b7fb0;
+            font-size: 0.7rem;
+        }
+        .speed-manual-row button {
+            background: #4e6ef2;
+            border: 1px solid #8aa4ff;
+            color: #fff;
+            padding: 0.25rem 0.8rem;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: 0.15s;
+        }
+        .speed-manual-row button:hover {
+            background: #6d8aff;
+        }
+        .speed-manual-result {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: #b7c9ff;
+            margin-top: 0.3rem;
+        }
+        .speed-manual-result span {
+            color: #ffffff;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <h1>⚡ Релятивистский вклад скорости</h1>
+    <div class="subhead">β = v/c · γ · замедление времени · энергия · импульс · сокращение длины</div>
+
+    <div class="main-panel">
+        <div class="left-col">
+            <div class="graph-card" id="graphCard">
+                <div class="curve-toggles">
+                    <label><input type="checkbox" id="toggleGamma" checked> γ</label>
+                    <label><input type="checkbox" id="toggleEnergy" checked> E_kin</label>
+                    <label><input type="checkbox" id="toggleTau" checked> τ/τ₀</label>
+                    <label><input type="checkbox" id="toggleMomentum" checked> p/(mc)</label>
+                    <label><input type="checkbox" id="toggleCompare"> Опорная β</label>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="relCanvas" width="800" height="500"></canvas>
+                </div>
+                <div class="tooltip" id="tooltip"></div>
+                <div class="legend" id="legendBlock">
+                    <div class="legend-item" id="legGamma"><span class="legend-dot" style="background: #4e8cff;"></span> γ (нижняя шкала)</div>
+                    <div class="legend-item" id="legEnergy"><span class="legend-dot" style="background: #6fe06f;"></span> E_kin/(mc²) (верхняя шкала)</div>
+                    <div class="legend-item" id="legTau"><span class="legend-dot" style="background: #ff7b4e;"></span> τ/τ₀ (правая шкала)</div>
+                    <div class="legend-item" id="legMomentum"><span class="legend-dot" style="background: #ffb347;"></span> p/(mc) = γβ (пунктир)</div>
+                    <div class="legend-item" id="legCompare" style="display:none;"><span class="legend-dot" style="background: #ff6b9d;"></span> опорная β</div>
+                </div>
+                <div class="slider-block">
+                    <div class="slider-label">
+                        <span>β путешественника = v/c</span>
+                        <span id="betaDisplay">0.900000</span>
+                    </div>
+                    <input type="range" id="betaSlider" min="0" max="0.9" step="0.000000001" value="0.9">
+                    <div class="beta-range-info">
+                        <span>0</span>
+                        <span style="color: #8aa4ff; font-weight: 600;" id="rangeHint">▲ диапазон 0 – 0.9</span>
+                        <span>0.999999999</span>
+                    </div>
+                </div>
+                <div class="range-toggle">
+                    <button id="rangeBtnA" class="active">0 – 0.9</button>
+                    <button id="rangeBtnB">0.9 – 0.999</button>
+                    <button id="rangeBtnC">0.999 – 0.999999999</button>
+                </div>
+                <div class="speed-info">
+                    Скорость путешественника: <span class="speed-value" id="speedValue">0</span><span class="speed-unit">км/с</span>
+                </div>
+                <div class="note">Наведи курсор на график — появятся подсказки. Двигай ползунок для изменения β.</div>
+            </div>
+
+            <!-- Блоки наблюдателя и путешественника перенесены влево под график -->
+            <div class="speed-manual-block">
+                <div class="speed-manual-item observer">
+                    <div class="speed-manual-title"><span class="dot observer-dot"></span> Наблюдатель (Земля) — более медленный</div>
+                    <div class="speed-manual-row">
+                        <label>Скорость:</label>
+                        <input type="number" id="obsSpeedInput" value="0" step="1" min="0">
+                        <span class="unit-label">км/с</span>
+                        <button id="obsSpeedBtn">Применить</button>
+                    </div>
+                    <div class="speed-manual-result">β наблюдателя: <span id="obsBetaResult">0.000000</span></div>
+                </div>
+                <div class="speed-manual-item traveler">
+                    <div class="speed-manual-title"><span class="dot traveler-dot"></span> Путешественник — быстро движущийся</div>
+                    <div class="speed-manual-row">
+                        <label>Скорость:</label>
+                        <input type="number" id="travSpeedInput" value="0" step="1" min="0">
+                        <span class="unit-label">км/с</span>
+                        <button id="travSpeedBtn">Применить</button>
+                    </div>
+                    <div class="speed-manual-result">β путешественника: <span id="travBetaResult">0.900000</span></div>
+                </div>
+            </div>
+
+            <div class="explain-box">
+                <strong>Как приближение к скорости света меняет картину мира?</strong><br>
+                Когда корабль летит со скоростью, близкой к скорости света (β → 1), для <strong>наблюдателя на Земле</strong> время на корабле идёт медленнее, а сам корабль становится короче по направлению движения. При β = 0.999999999 собственное время корабля течёт в ~22360 раз медленнее земного, а его длина сжимается в те же ~22360 раз.<br>
+                <span class="highlight">Для путешественника</span> всё наоборот: он не замечает, что его часы «тормозят» — для него идёт нормальное время, но <strong>преодолеваемое им расстояние сокращается</strong> в γ раз. Именно поэтому космонавт может долететь до далёкой звезды за несколько лет собственной жизни, хотя для Земли пройдут столетия.
+            </div>
+        </div>
+
+        <div class="right-col">
+            <div class="formula-card">
+                <div class="formula-title"><span>ƒ</span> Формулы и связи</div>
+                <div class="formula-grid">
+                    <div class="formula-item"><span class="expr">β = v/c</span><span class="desc">отношение скорости к c</span></div>
+                    <div class="formula-item"><span class="expr">γ = 1 / √(1 − β²)</span><span class="desc">Лоренц-фактор</span></div>
+                    <div class="formula-item"><span class="expr">τ = τ₀ / γ</span><span class="desc">замедление времени</span></div>
+                    <div class="formula-item"><span class="expr">L = L₀ / γ</span><span class="desc">сокращение длины</span></div>
+                    <div class="formula-item"><span class="expr">E_kin = (γ − 1) m c²</span><span class="desc">кинетическая энергия</span></div>
+                    <div class="formula-item"><span class="expr">p = γ m v</span><span class="desc">релятивистский импульс</span></div>
+                </div>
+            </div>
+
+            <div class="values-panel">
+                <div class="value-row"><span class="value-label">β (v/c)</span><span class="value-number" id="valBeta">0.900000</span></div>
+                <div class="value-row"><span class="value-label">γ (Лоренц-фактор)</span><span class="value-number" id="valGamma">2.294</span></div>
+                <div class="value-row"><span class="value-label">τ / τ₀ (замедление)</span><span class="value-number" id="valTau">0.4359</span></div>
+                <div class="value-row"><span class="value-label">E_kin / (mc²)</span><span class="value-number" id="valEnergy">1.294</span></div>
+                <div class="value-row"><span class="value-label">Импульс p/(mc)</span><span class="value-number momentum" id="valMomentum">2.065</span></div>
+            </div>
+
+            <div class="distance-card">
+                <div class="distance-title"><span>⏱</span> Расстояние и время</div>
+                <div class="distance-input-row">
+                    <label>L₀:</label>
+                    <input type="number" id="distanceInput" value="10" step="0.1" min="0.01">
+                    <select id="distanceUnit">
+                        <option value="ly" selected>св. лет</option>
+                        <option value="pc">парсек</option>
+                        <option value="au">а.е.</option>
+                        <option value="mkm">млн км</option>
+                    </select>
+                </div>
+                <div class="distance-result">
+                    <span class="res-label">Время в системе Земли (t)</span>
+                    <span><span class="res-value" id="timeEarth">—</span><span class="res-unit" id="timeEarthUnit">лет</span></span>
+                </div>
+                <div class="distance-result">
+                    <span class="res-label">Собственное время корабля (τ)</span>
+                    <span><span class="res-value" id="timeShip">—</span><span class="res-unit" id="timeShipUnit">лет</span></span>
+                </div>
+                <div class="distance-result">
+                    <span class="res-label">Дистанция в системе корабля (L)</span>
+                    <span><span class="res-value" id="lengthShip">—</span><span class="res-unit" id="lengthShipUnit">св. лет</span></span>
+                </div>
+            </div>
+
+            <div class="reverse-card">
+                <div class="reverse-title"><span>↩</span> Обратный расчёт β</div>
+                <div class="reverse-row">
+                    <label>Время корабля τ:</label>
+                    <input type="number" id="reverseTime" value="1" step="0.1" min="0.01">
+                    <select id="reverseTimeUnit">
+                        <option value="years" selected>лет</option>
+                        <option value="months">мес</option>
+                        <option value="days">дн</option>
+                    </select>
+                    <button id="reverseBtn">Найти β</button>
+                </div>
+                <div class="reverse-result">
+                    <span class="res-label">Нужная β для L₀ и τ</span>
+                    <span class="res-value" id="reverseBeta">—</span>
+                </div>
+                <div class="reverse-result">
+                    <span class="res-label">Соответствующая скорость</span>
+                    <span class="res-value" id="reverseSpeed">—</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ----- DOM -----
+        const canvas = document.getElementById('relCanvas');
+        const ctx = canvas.getContext('2d');
+        const slider = document.getElementById('betaSlider');
+        const betaDisplay = document.getElementById('betaDisplay');
+
+        const valBeta = document.getElementById('valBeta');
+        const valGamma = document.getElementById('valGamma');
+        const valTau = document.getElementById('valTau');
+        const valEnergy = document.getElementById('valEnergy');
+        const valMomentum = document.getElementById('valMomentum');
+
+        const rangeBtnA = document.getElementById('rangeBtnA');
+        const rangeBtnB = document.getElementById('rangeBtnB');
+        const rangeBtnC = document.getElementById('rangeBtnC');
+        const rangeHint = document.getElementById('rangeHint');
+        const speedValue = document.getElementById('speedValue');
+
+        const distanceInput = document.getElementById('distanceInput');
+        const distanceUnit = document.getElementById('distanceUnit');
+        const timeEarth = document.getElementById('timeEarth');
+        const timeShip = document.getElementById('timeShip');
+        const lengthShip = document.getElementById('lengthShip');
+        const timeEarthUnit = document.getElementById('timeEarthUnit');
+        const timeShipUnit = document.getElementById('timeShipUnit');
+        const lengthShipUnit = document.getElementById('lengthShipUnit');
+
+        const reverseTime = document.getElementById('reverseTime');
+        const reverseTimeUnit = document.getElementById('reverseTimeUnit');
+        const reverseBtn = document.getElementById('reverseBtn');
+        const reverseBeta = document.getElementById('reverseBeta');
+        const reverseSpeed = document.getElementById('reverseSpeed');
+
+        const toggleGamma = document.getElementById('toggleGamma');
+        const toggleEnergy = document.getElementById('toggleEnergy');
+        const toggleTau = document.getElementById('toggleTau');
+        const toggleMomentum = document.getElementById('toggleMomentum');
+        const toggleCompare = document.getElementById('toggleCompare');
+        const legGamma = document.getElementById('legGamma');
+        const legEnergy = document.getElementById('legEnergy');
+        const legTau = document.getElementById('legTau');
+        const legMomentum = document.getElementById('legMomentum');
+        const legCompare = document.getElementById('legCompare');
+
+        const tooltip = document.getElementById('tooltip');
+        const graphCard = document.getElementById('graphCard');
+
+        const obsSpeedInput = document.getElementById('obsSpeedInput');
+        const obsSpeedBtn = document.getElementById('obsSpeedBtn');
+        const obsBetaResult = document.getElementById('obsBetaResult');
+        const travSpeedInput = document.getElementById('travSpeedInput');
+        const travSpeedBtn = document.getElementById('travSpeedBtn');
+        const travBetaResult = document.getElementById('travBetaResult');
+
+        const C_KM_S = 299792.458;
+        const BETA_MAX = 0.999999999;
+
+        // Единицы
+        const LENGTH_UNITS = {
+            ly: { name: 'св. лет', factor: 1 },
+            pc: { name: 'пк', factor: 3.26156 },
+            au: { name: 'а.е.', factor: 1 / 63241.077 },
+            mkm: { name: 'млн км', factor: 1 / 9460730472.58 }
+        };
+        const TIME_UNITS = {
+            years: { name: 'лет', factor: 1 },
+            months: { name: 'мес', factor: 1 / 12 },
+            days: { name: 'дн', factor: 1 / 365.25 }
+        };
+        function getLengthFactor() { return LENGTH_UNITS[distanceUnit.value]?.factor || 1; }
+        function getLengthUnitName() { return LENGTH_UNITS[distanceUnit.value]?.name || 'св. лет'; }
+        function getTimeUnitFactor() { return TIME_UNITS[reverseTimeUnit.value]?.factor || 1; }
+        function getTimeUnitName() { return TIME_UNITS[reverseTimeUnit.value]?.name || 'лет'; }
+
+        // Режимы
+        let mode = 'A';
+        function getRange() {
+            if (mode === 'A') return { min: 0, max: 0.9 };
+            if (mode === 'B') return { min: 0.9, max: 0.999 };
+            return { min: 0.999, max: BETA_MAX };
+        }
+
+        function gammaFromBeta(beta) {
+            if (beta >= 1.0) beta = BETA_MAX;
+            return 1 / Math.sqrt(1 - beta * beta);
+        }
+        function gammaVal(beta) { return gammaFromBeta(beta); }
+        function invGammaVal(beta) { return 1 / gammaFromBeta(beta); }
+        function energyVal(beta) { return gammaFromBeta(beta) - 1; }
+        function momentumVal(beta) { return gammaFromBeta(beta) * beta; }
+
+        let canvasWidth, canvasHeight;
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const rect = container.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            const width = rect.width - 4;
+            const height = rect.height - 4;
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            canvas.style.width = width + 'px';
+            canvas.style.height = height + 'px';
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            canvasWidth = width;
+            canvasHeight = height;
+            drawGraph();
+        }
+
+        let hoverBeta = null;
+
+        function betaToYFrac(beta) {
+            const r = getRange();
+            let frac = (beta - r.min) / (r.max - r.min);
+            return Math.max(0, Math.min(1, frac));
+        }
+        function yFracToBeta(yFrac) {
+            const r = getRange();
+            return r.min + yFrac * (r.max - r.min);
+        }
+
+        function formatBetaLabel(b) {
+            if (b >= 0.999999999) return '0.999999999';
+            if (b >= 0.99999999) return b.toFixed(8);
+            if (b >= 0.9999999) return b.toFixed(7);
+            if (b >= 0.999999) return b.toFixed(6);
+            if (b >= 0.99999) return b.toFixed(5);
+            if (b >= 0.9999) return b.toFixed(4);
+            if (b >= 0.999) return b.toFixed(3);
+            if (b >= 0.99) return b.toFixed(2);
+            return b.toFixed(2);
+        }
+
+        function niceMax(val) {
+            if (val <= 0) return 1;
+            const exp = Math.floor(Math.log10(val));
+            const base = Math.pow(10, exp);
+            const norm = val / base;
+            let niceNorm;
+            if (norm <= 1) niceNorm = 1;
+            else if (norm <= 2) niceNorm = 2;
+            else if (norm <= 5) niceNorm = 5;
+            else niceNorm = 10;
+            return niceNorm * base;
+        }
+
+        function drawGraph() {
+            if (!canvasWidth || !canvasHeight) return;
+            const w = canvasWidth, h = canvasHeight;
+            const padding = { left: 70, right: 85, top: 60, bottom: 60 };
+            const plotW = w - padding.left - padding.right;
+            const plotH = h - padding.top - padding.bottom;
+            ctx.clearRect(0, 0, w, h);
+            ctx.save();
+            ctx.translate(padding.left, padding.top);
+
+            const r = getRange();
+            const gammaMaxPlot = gammaVal(r.max);
+            const energyMaxPlot = energyVal(r.max);
+            const invGammaMinPlot = invGammaVal(r.max);
+            const momentumMaxPlot = momentumVal(r.max);
+            const gammaAxisMax = niceMax(gammaMaxPlot);
+            const energyAxisMax = niceMax(energyMaxPlot);
+            const momentumAxisMax = niceMax(momentumMaxPlot);
+
+            function gammaToX(g) { return (g / gammaAxisMax) * plotW; }
+            function energyToX(e) { return (e / energyAxisMax) * plotW; }
+            function momentumToX(p) { return (p / momentumAxisMax) * plotW; }
+            function tauToX(tau) {
+                let frac = (1 - tau) / (1 - invGammaMinPlot);
+                return frac * plotW;
+            }
+
+            // Оси
+            ctx.strokeStyle = '#2d3a5e';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(0, plotH); ctx.lineTo(plotW, plotH);
+            ctx.moveTo(0, 0); ctx.lineTo(0, plotH);
+            ctx.moveTo(0, 0); ctx.lineTo(plotW, 0);
+            ctx.moveTo(plotW, 0); ctx.lineTo(plotW, plotH);
+            ctx.stroke();
+
+            // Сетка β
+            ctx.font = '10px "JetBrains Mono", monospace';
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#8a9bcb';
+            let betaMarks;
+            if (mode === 'A') betaMarks = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
+            else if (mode === 'B') betaMarks = [0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 0.999];
+            else betaMarks = [0.999, 0.9991, 0.9992, 0.9993, 0.9994, 0.9995, 0.9996, 0.9997, 0.9998, 0.9999, 0.99999, 0.999999, 0.9999999, 0.999999999];
+
+            for (let b of betaMarks) {
+                if (b < r.min - 1e-15 || b > r.max + 1e-15) continue;
+                let yFrac = betaToYFrac(b);
+                let yPos = plotH - yFrac * plotH;
+                ctx.beginPath();
+                ctx.moveTo(0, yPos);
+                ctx.lineTo(plotW, yPos);
+                ctx.strokeStyle = '#1e2a44';
+                ctx.stroke();
+                ctx.fillStyle = '#8a9bcb';
+                ctx.fillText(formatBetaLabel(b), -8, yPos + 3);
+            }
+
+            const showGamma = toggleGamma.checked;
+            const showEnergy = toggleEnergy.checked;
+            const showTau = toggleTau.checked;
+            const showMomentum = toggleMomentum.checked;
+            const showCompare = toggleCompare.checked;
+
+            // Шкалы
+            ctx.textAlign = 'center';
+            const xSteps = 6;
+            if (showGamma) {
+                for (let i = 0; i <= xSteps; i++) {
+                    let xVal = (i / xSteps) * gammaAxisMax;
+                    let xPos = (xVal / gammaAxisMax) * plotW;
+                    ctx.beginPath();
+                    ctx.moveTo(xPos, plotH);
+                    ctx.lineTo(xPos, plotH + 6);
+                    ctx.strokeStyle = '#3b4d7a';
+                    ctx.stroke();
+                    ctx.fillStyle = '#4e8cff';
+                    let label = xVal >= 1000 ? (xVal/1000).toFixed(1)+'k' : (xVal >= 10 ? xVal.toFixed(0) : xVal.toFixed(1));
+                    ctx.fillText(label, xPos, plotH + 22);
+                }
+            }
+            if (showEnergy) {
+                for (let i = 0; i <= xSteps; i++) {
+                    let xVal = (i / xSteps) * energyAxisMax;
+                    let xPos = (xVal / energyAxisMax) * plotW;
+                    ctx.beginPath();
+                    ctx.moveTo(xPos, -6);
+                    ctx.lineTo(xPos, 0);
+                    ctx.strokeStyle = '#3b4d7a';
+                    ctx.stroke();
+                    ctx.fillStyle = '#6fe06f';
+                    let label = xVal >= 1000 ? (xVal/1000).toFixed(1)+'k' : (xVal >= 10 ? xVal.toFixed(0) : xVal.toFixed(1));
+                    ctx.fillText(label, xPos, -12);
+                }
+            }
+            if (showTau) {
+                ctx.textAlign = 'left';
+                const tauSteps = 6;
+                for (let i = 0; i <= tauSteps; i++) {
+                    let tauVal = 1 - (i / tauSteps) * (1 - invGammaMinPlot);
+                    let yPos = plotH - (i / tauSteps) * plotH;
+                    ctx.beginPath();
+                    ctx.moveTo(plotW, yPos);
+                    ctx.lineTo(plotW + 6, yPos);
+                    ctx.strokeStyle = '#3b4d7a';
+                    ctx.stroke();
+                    ctx.fillStyle = '#ff7b4e';
+                    let label = tauVal >= 0.01 ? tauVal.toFixed(2) : tauVal.toExponential(1);
+                    ctx.fillText(label, plotW + 10, yPos + 3);
+                }
+            }
+
+            // Подписи осей
+            ctx.fillStyle = '#b7c9ff';
+            ctx.font = '12px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            if (showGamma) ctx.fillText('γ (Лоренц-фактор)', plotW / 2, plotH + 45);
+            if (showEnergy) {
+                ctx.fillStyle = '#6fe06f';
+                ctx.fillText('E_kin / (mc²)', plotW / 2, -38);
+            }
+            if (showTau) {
+                ctx.save();
+                ctx.fillStyle = '#ff7b4e';
+                ctx.translate(plotW + 65, plotH / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.textAlign = 'center';
+                ctx.fillText('τ / τ₀', 0, 0);
+                ctx.restore();
+            }
+            ctx.save();
+            ctx.fillStyle = '#b7c9ff';
+            ctx.translate(-45, plotH / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.fillText('β = v/c', 0, 0);
+            ctx.restore();
+
+            // Кривые
+            const steps = 2000;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            function tToBeta(t) { return r.min + t * (r.max - r.min); }
+
+            if (showGamma) {
+                ctx.beginPath();
+                for (let i = 0; i <= steps; i++) {
+                    let t = i / steps;
+                    let beta = tToBeta(t);
+                    if (beta > BETA_MAX) beta = BETA_MAX;
+                    let g = gammaVal(beta);
+                    let xPos = gammaToX(g);
+                    let yPos = plotH - betaToYFrac(beta) * plotH;
+                    if (i === 0) ctx.moveTo(xPos, yPos); else ctx.lineTo(xPos, yPos);
+                }
+                ctx.strokeStyle = '#4e8cff';
+                ctx.lineWidth = 2.5;
+                ctx.shadowColor = '#4e8cff';
+                ctx.shadowBlur = 10;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+            if (showEnergy) {
+                ctx.beginPath();
+                for (let i = 0; i <= steps; i++) {
+                    let t = i / steps;
+                    let beta = tToBeta(t);
+                    if (beta > BETA_MAX) beta = BETA_MAX;
+                    let e = energyVal(beta);
+                    let xPos = energyToX(e);
+                    let yPos = plotH - betaToYFrac(beta) * plotH;
+                    if (i === 0) ctx.moveTo(xPos, yPos); else ctx.lineTo(xPos, yPos);
+                }
+                ctx.strokeStyle = '#6fe06f';
+                ctx.lineWidth = 2.5;
+                ctx.shadowColor = '#6fe06f';
+                ctx.shadowBlur = 10;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+            if (showTau) {
+                ctx.beginPath();
+                for (let i = 0; i <= steps; i++) {
+                    let t = i / steps;
+                    let beta = tToBeta(t);
+                    if (beta > BETA_MAX) beta = BETA_MAX;
+                    let tau = invGammaVal(beta);
+                    let xPos = tauToX(tau);
+                    let yPos = plotH - betaToYFrac(beta) * plotH;
+                    if (i === 0) ctx.moveTo(xPos, yPos); else ctx.lineTo(xPos, yPos);
+                }
+                ctx.strokeStyle = '#ff7b4e';
+                ctx.lineWidth = 2.5;
+                ctx.shadowColor = '#ff7b4e';
+                ctx.shadowBlur = 10;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+            if (showMomentum) {
+                ctx.beginPath();
+                for (let i = 0; i <= steps; i++) {
+                    let t = i / steps;
+                    let beta = tToBeta(t);
+                    if (beta > BETA_MAX) beta = BETA_MAX;
+                    let p = momentumVal(beta);
+                    let xPos = momentumToX(p);
+                    let yPos = plotH - betaToYFrac(beta) * plotH;
+                    if (i === 0) ctx.moveTo(xPos, yPos); else ctx.lineTo(xPos, yPos);
+                }
+                ctx.strokeStyle = '#ffb347';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([6, 5]);
+                ctx.shadowColor = '#ffb347';
+                ctx.shadowBlur = 8;
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.shadowBlur = 0;
+            }
+            if (showCompare) {
+                let refB = parseFloat(obsBetaResult.textContent) || 0;
+                if (refB >= r.min && refB <= r.max) {
+                    let yRef = plotH - betaToYFrac(refB) * plotH;
+                    ctx.beginPath();
+                    ctx.moveTo(0, yRef);
+                    ctx.lineTo(plotW, yRef);
+                    ctx.strokeStyle = '#ff6b9d80';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([4, 4]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+
+            // Активная β
+            let activeBeta = (hoverBeta !== null) ? hoverBeta : parseFloat(slider.value);
+            if (activeBeta > BETA_MAX) activeBeta = BETA_MAX;
+            if (activeBeta < 0) activeBeta = 0;
+            let visible = (activeBeta >= r.min - 1e-12 && activeBeta <= r.max + 1e-12);
+            if (visible) {
+                let yPosActive = plotH - betaToYFrac(activeBeta) * plotH;
+                ctx.beginPath();
+                ctx.moveTo(0, yPosActive);
+                ctx.lineTo(plotW, yPosActive);
+                ctx.strokeStyle = '#ffffff60';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([6, 6]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                if (showGamma) {
+                    ctx.beginPath();
+                    ctx.arc(gammaToX(gammaVal(activeBeta)), yPosActive, 6, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#4e8cff';
+                    ctx.shadowBlur = 18;
+                    ctx.shadowColor = '#4e8cff';
+                    ctx.fill();
+                }
+                if (showEnergy) {
+                    ctx.beginPath();
+                    ctx.arc(energyToX(energyVal(activeBeta)), yPosActive, 6, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#6fe06f';
+                    ctx.shadowColor = '#6fe06f';
+                    ctx.fill();
+                }
+                if (showTau) {
+                    ctx.beginPath();
+                    ctx.arc(tauToX(invGammaVal(activeBeta)), yPosActive, 6, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#ff7b4e';
+                    ctx.shadowColor = '#ff7b4e';
+                    ctx.fill();
+                }
+                if (showMomentum) {
+                    ctx.beginPath();
+                    ctx.arc(momentumToX(momentumVal(activeBeta)), yPosActive, 5, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#ffb347';
+                    ctx.shadowColor = '#ffb347';
+                    ctx.fill();
+                }
+                ctx.shadowBlur = 0;
+            }
+            ctx.restore();
+            updateValues(activeBeta);
+        }
+
+        function updateTooltip(mouseX, mouseY, beta) {
+            if (beta === null) { tooltip.classList.remove('visible'); return; }
+            const gamma = gammaFromBeta(beta);
+            const tau = 1 / gamma;
+            const energy = gamma - 1;
+            const mom = gamma * beta;
+            const vKmS = beta * C_KM_S;
+            let html = `<div class="tt-title">β = ${beta.toFixed(9).replace(/0+$/, '').replace(/\.$/, '')}</div>`;
+            if (toggleGamma.checked) html += `<div class="tt-row"><span class="tt-label">γ</span><span class="tt-value">${gamma.toFixed(3)}</span></div>`;
+            if (toggleTau.checked) html += `<div class="tt-row"><span class="tt-label">τ/τ₀</span><span class="tt-value">${tau.toExponential(3)}</span></div>`;
+            if (toggleEnergy.checked) html += `<div class="tt-row"><span class="tt-label">E_kin/(mc²)</span><span class="tt-value">${energy.toFixed(3)}</span></div>`;
+            if (toggleMomentum.checked) html += `<div class="tt-row"><span class="tt-label">p/(mc)</span><span class="tt-value">${mom.toFixed(3)}</span></div>`;
+            html += `<div class="tt-row"><span class="tt-label">Скорость</span><span class="tt-value">${Math.round(vKmS)} км/с</span></div>`;
+            tooltip.innerHTML = html;
+            const cardRect = graphCard.getBoundingClientRect();
+            let left = mouseX - cardRect.left + 15;
+            let top = mouseY - cardRect.top + 15;
+            if (left + 240 > cardRect.width) left = mouseX - cardRect.left - 255;
+            if (top + 160 > cardRect.height) top = mouseY - cardRect.top - 170;
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+            tooltip.classList.add('visible');
+        }
+
+        function updateValues(beta) {
+            if (beta > BETA_MAX) beta = BETA_MAX;
+            if (beta < 0) beta = 0;
+            const gamma = gammaFromBeta(beta);
+            const tauRatio = 1 / gamma;
+            const energyRatio = gamma - 1;
+            const momentumRatio = gamma * beta;
+
+            betaDisplay.textContent = beta.toFixed(9).replace(/0+$/, '').replace(/\.$/, '');
+            valBeta.textContent = beta.toFixed(6);
+            valGamma.textContent = gamma.toFixed(3);
+            valTau.textContent = tauRatio.toExponential(3);
+            valEnergy.textContent = energyRatio.toFixed(3);
+            valMomentum.textContent = momentumRatio.toFixed(3);
+
+            const vKmS = beta * C_KM_S;
+            speedValue.textContent = Math.round(vKmS).toString();
+            travBetaResult.textContent = beta.toFixed(6);
+
+            let L0 = parseFloat(distanceInput.value);
+            if (isNaN(L0) || L0 <= 0) L0 = 0.01;
+            let L0ly = L0 * getLengthFactor();
+            let tEarthYears = (beta > 1e-12) ? (L0ly / beta) : Infinity;
+            let tShipYears = tEarthYears / gamma;
+            let lShipLy = L0ly / gamma;
+
+            let timeUnitFactor = getTimeUnitFactor();
+            let timeUnitName = getTimeUnitName();
+            timeEarthUnit.textContent = timeUnitName;
+            timeShipUnit.textContent = timeUnitName;
+            lengthShipUnit.textContent = getLengthUnitName();
+
+            let tEarthDisplay = isFinite(tEarthYears) ? tEarthYears / timeUnitFactor : Infinity;
+            let tShipDisplay = isFinite(tShipYears) ? tShipYears / timeUnitFactor : Infinity;
+            let lShipDisplay = lShipLy / getLengthFactor();
+
+            timeEarth.textContent = isFinite(tEarthDisplay) ? tEarthDisplay.toFixed(2) : '∞';
+            timeShip.textContent = isFinite(tShipDisplay) ? tShipDisplay.toFixed(2) : '∞';
+            lengthShip.textContent = lShipDisplay.toFixed(2);
+        }
+
+        function calculateReverseBeta() {
+            let L0 = parseFloat(distanceInput.value);
+            if (isNaN(L0) || L0 <= 0) L0 = 0.01;
+            let L0ly = L0 * getLengthFactor();
+            let tau = parseFloat(reverseTime.value);
+            if (isNaN(tau) || tau <= 0) tau = 0.01;
+            let tauYears = tau * getTimeUnitFactor();
+            let beta = L0ly / Math.sqrt(L0ly * L0ly + tauYears * tauYears);
+            if (beta > BETA_MAX) beta = BETA_MAX;
+            reverseBeta.textContent = beta.toFixed(9).replace(/0+$/, '').replace(/\.$/, '');
+            let vKmS = beta * C_KM_S;
+            reverseSpeed.textContent = Math.round(vKmS) + ' км/с';
+            return beta;
+        }
+
+        function handleSliderChange() {
+            let beta = parseFloat(slider.value);
+            if (beta > BETA_MAX) beta = BETA_MAX;
+            slider.value = beta;
+            hoverBeta = null;
+            tooltip.classList.remove('visible');
+            drawGraph();
+            updateValues(beta);
+        }
+        slider.addEventListener('input', handleSliderChange);
+
+        function handleCanvasMouseMove(e) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const padding = { left: 70, right: 85, top: 60, bottom: 60 };
+            const plotW = canvasWidth - padding.left - padding.right;
+            const plotH = canvasHeight - padding.top - padding.bottom;
+            if (mouseX < padding.left || mouseX > padding.left + plotW || mouseY < padding.top || mouseY > padding.top + plotH) {
+                if (hoverBeta !== null) {
+                    hoverBeta = null;
+                    tooltip.classList.remove('visible');
+                    drawGraph();
+                }
+                return;
+            }
+            const relativeY = (mouseY - padding.top) / plotH;
+            let yFrac = 1.0 - relativeY;
+            let beta = yFracToBeta(yFrac);
+            if (beta < 0) beta = 0;
+            if (beta > BETA_MAX) beta = BETA_MAX;
+            hoverBeta = beta;
+            drawGraph();
+            updateTooltip(e.clientX, e.clientY, beta);
+            updateValues(beta);
+        }
+        function handleCanvasMouseLeave() {
+            hoverBeta = null;
+            tooltip.classList.remove('visible');
+            drawGraph();
+            updateValues(parseFloat(slider.value));
+        }
+        canvas.addEventListener('mousemove', handleCanvasMouseMove);
+        canvas.addEventListener('mouseleave', handleCanvasMouseLeave);
+
+        function setMode(newMode) {
+            mode = newMode;
+            rangeBtnA.classList.toggle('active', mode === 'A');
+            rangeBtnB.classList.toggle('active', mode === 'B');
+            rangeBtnC.classList.toggle('active', mode === 'C');
+            const r = getRange();
+            slider.min = r.min;
+            slider.max = r.max;
+            slider.step = 0.000000001;
+            let cur = parseFloat(slider.value);
+            if (cur < r.min) cur = r.min;
+            if (cur > r.max) cur = r.max;
+            slider.value = cur;
+            if (mode === 'A') rangeHint.textContent = '▲ диапазон 0 – 0.9';
+            else if (mode === 'B') rangeHint.textContent = '▲ диапазон 0.9 – 0.999';
+            else rangeHint.textContent = '▲ диапазон 0.999 – 0.999999999';
+            hoverBeta = null;
+            tooltip.classList.remove('visible');
+            drawGraph();
+            updateValues(cur);
+        }
+        rangeBtnA.addEventListener('click', () => setMode('A'));
+        rangeBtnB.addEventListener('click', () => setMode('B'));
+        rangeBtnC.addEventListener('click', () => setMode('C'));
+
+        function updateLegendVisibility() {
+            legGamma.style.display = toggleGamma.checked ? 'flex' : 'none';
+            legEnergy.style.display = toggleEnergy.checked ? 'flex' : 'none';
+            legTau.style.display = toggleTau.checked ? 'flex' : 'none';
+            legMomentum.style.display = toggleMomentum.checked ? 'flex' : 'none';
+            legCompare.style.display = toggleCompare.checked ? 'flex' : 'none';
+        }
+        toggleGamma.addEventListener('change', () => { updateLegendVisibility(); drawGraph(); });
+        toggleEnergy.addEventListener('change', () => { updateLegendVisibility(); drawGraph(); });
+        toggleTau.addEventListener('change', () => { updateLegendVisibility(); drawGraph(); });
+        toggleMomentum.addEventListener('change', () => { updateLegendVisibility(); drawGraph(); });
+        toggleCompare.addEventListener('change', () => { updateLegendVisibility(); drawGraph(); });
+
+        distanceInput.addEventListener('input', () => {
+            let beta = hoverBeta !== null ? hoverBeta : parseFloat(slider.value);
+            updateValues(beta);
+        });
+        distanceUnit.addEventListener('change', () => {
+            let beta = hoverBeta !== null ? hoverBeta : parseFloat(slider.value);
+            updateValues(beta);
+        });
+        reverseTimeUnit.addEventListener('change', () => {
+            let beta = hoverBeta !== null ? hoverBeta : parseFloat(slider.value);
+            updateValues(beta);
+        });
+        reverseBtn.addEventListener('click', () => calculateReverseBeta());
+
+        obsSpeedBtn.addEventListener('click', () => {
+            let v = parseFloat(obsSpeedInput.value);
+            if (isNaN(v) || v < 0) v = 0;
+            if (v > C_KM_S) v = C_KM_S;
+            let beta = v / C_KM_S;
+            if (beta > BETA_MAX) beta = BETA_MAX;
+            obsBetaResult.textContent = beta.toFixed(6);
+            drawGraph();
+        });
+
+        travSpeedBtn.addEventListener('click', () => {
+            let v = parseFloat(travSpeedInput.value);
+            if (isNaN(v) || v < 0) v = 0;
+            if (v > C_KM_S) v = C_KM_S;
+            let beta = v / C_KM_S;
+            if (beta > BETA_MAX) beta = BETA_MAX;
+            let r = getRange();
+            if (beta < r.min || beta > r.max) {
+                if (beta <= 0.9) setMode('A');
+                else if (beta <= 0.999) setMode('B');
+                else setMode('C');
+                r = getRange();
+            }
+            slider.value = beta;
+            travBetaResult.textContent = beta.toFixed(6);
+            handleSliderChange();
+        });
+
+        window.addEventListener('resize', () => resizeCanvas());
+
+        function init() {
+            resizeCanvas();
+            mode = 'A';
+            rangeBtnA.classList.add('active');
+            rangeBtnB.classList.remove('active');
+            rangeBtnC.classList.remove('active');
+            rangeHint.textContent = '▲ диапазон 0 – 0.9';
+            slider.min = 0;
+            slider.max = 0.9;
+            slider.step = 0.000000001;
+            slider.value = 0.9;
+            obsBetaResult.textContent = '0.000000';
+            travBetaResult.textContent = '0.900000';
+            updateLegendVisibility();
+            handleSliderChange();
+        }
+        init();
+    })();
+</script>
+</body>
+</html>
