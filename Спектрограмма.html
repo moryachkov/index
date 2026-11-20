@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Спектрограмма с микрофона</title>
+<style>
+  body {
+    background: #111;
+    color: #eee;
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    margin: 0;
+    user-select: none;
+  }
+  h2 { margin: 0 0 12px; font-weight: 400; }
+  #controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  button {
+    background: #333;
+    color: #eee;
+    border: 1px solid #555;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  button.active { background: #2a7; border-color: #2a7; color: #000; font-weight: 600; }
+  button:hover { border-color: #888; }
+  button#startBtn { min-width: 90px; }
+  button#startBtn.running {
+    background: #c33; border-color: #c33; color: #fff;
+  }
+  #canvas {
+    border: 1px solid #444;
+    border-radius: 6px;
+    display: block;
+    cursor: default;
+  }
+  #status { font-size: 13px; color: #888; margin-top: 10px; text-align: center; min-height: 18px; }
+</style>
+</head>
+<body>
+<h2>Спектрограмма с микрофона</h2>
+
+<div id="controls">
+  <button id="startBtn">Старт</button>
+  <button id="range1"  >0–1 кГц</button>
+  <button id="range12" class="active">0–12 кГц</button>
+  <button id="range25">0–25 кГц</button>
+</div>
+
+<canvas id="canvas"></canvas>
+<div id="status"></div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d', { alpha: false });
+const statusEl = document.getElementById('status');
+
+const startBtn = document.getElementById('startBtn');
+const range1  = document.getElementById('range1');
+const range12 = document.getElementById('range12');
+const range25 = document.getElementById('range25');
+
+// -------- Размеры --------
+const PLOT_W = 900;
+const PLOT_H = 420;
+const PAD_LEFT   = 90;
+const PAD_RIGHT  = 90;
+const PAD_TOP    = 10;
+const PAD_BOTTOM = 34;
+
+const W = PAD_LEFT + PLOT_W + PAD_RIGHT;
+const H = PAD_TOP + PLOT_H + PAD_BOTTOM;
+canvas.width = W;
+canvas.height = H;
+
+// -------- Offscreen: «чистая» спектрограмма без бегунка --------
+const off = document.createElement('canvas');
+off.width = W;
+off.height = H;
+const offCtx = off.getContext('2d', { alpha: false });
+
+// -------- Состояние --------
+let audioCtx = null;
+let analyser = null;
+let source = null;
+let mediaStream = null;
+let running = false;
+let animationId = null;
+
+let maxFreq = 12000;
+let freqData = null;
+let currentSampleRate = 44100;
+let yToBins = null;
+
+let scanSpeed = 60;
+let totalColumns = 0;
+
+// -------- Бегунок --------
+let markerY = Math.round(PLOT_H * 0.25);
+let dragging = false;
+
+function markerFreq() {
+  return (1 - markerY / (PLOT_H - 1)) * maxFreq;
+}
+
+// -------- Статическая разметка (оси, сетка частот, подписи времени) --------
+function drawFrameStatic(c) {
+  c.fillStyle = '#111';
+  c.fillRect(0, 0, W, H);
+
+  // фон области спектра
+  c.fillStyle = '#000';
+  c.fillRect(PAD_LEFT, PAD_TOP, PLOT_W, PLOT_H);
+
+  // --- сетка по частоте (горизонтальные линии) ---
+  const freqTicks = niceFreqTicks(maxFreq);
+  c.strokeStyle = 'rgba(255,255,255,0.12)';
+  c.fillStyle = '#aaa';
+  c.font = '12px sans-serif';
+  c.textAlign = 'right';
+  c.textBaseline = 'middle';
+  c.lineWidth = 1;
+
+  for (const f of freqTicks) {
+    const y = PAD_TOP + freqToY(f);
+    if (y < PAD_TOP - 0.5 || y > PAD_TOP + PLOT_H + 0.5) continue;
+    c.beginPath();
+    c.moveTo(PAD_LEFT, y + 0.5);
+    c.lineTo(PAD_LEFT + PLOT_W, y + 0.5);
+    c.stroke();
+    c.fillText(formatFreq(f), PAD_LEFT - 8, y);
+  }
+
+  // --- подпись оси «Частота» ---
+  c.save();
+  c.translate(18, PAD_TOP + PLOT_H / 2);
+  c.rotate(-Math.PI / 2);
+  c.fillStyle = '#ccc';
+  c.font = '13px sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText('Частота', 0, 0);
+  c.restore();
+
+  // --- подписи времени внизу (без вертикальных линий в спектрограмме) ---
+  drawTimeLabels(c);
+
+  // --- рамка области спектра ---
+  c.strokeStyle = '#444';
+  c.strokeRect(PAD_LEFT + 0.5, PAD_TOP + 0.5, PLOT_W - 1, PLOT_H - 1);
+}
+
+function freqToY(f) {
+  const t = Math.max(0, Math.min(1, f / maxFreq));
+  return PLOT_H - Math.round(t * (PLOT_H - 1));
+}
+
+function niceFreqTicks(maxF) {
+  const targets = [100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000];
+  for (const step of targets) {
+    if (maxF / step <= 7) {
+      const arr = [];
+      for (let f = 0; f <= maxF + 1e-9; f += step) arr.push(f);
+      if (arr[arr.length - 1] !== maxF) arr.push(maxF);
+      return arr;
+    }
+  }
+  const arr = [];
+  for (let f = 0; f <= maxF; f += maxF / 5) arr.push(f);
+  return arr;
+}
+
+function formatFreq(f) {
+  if (f === 0) return '0';
+  if (f >= 1000) {
+    const k = f / 1000;
+    return (Number.isInteger(k) ? k.toString() : k.toFixed(1)) + ' кГц';
+  }
+  return Math.round(f) + ' Гц';
+}
+
+function niceTimeStep(totalSec) {
+  const steps = [0.2, 0.5, 1, 2, 5, 10, 20, 30];
+  for (const s of steps) if (totalSec / s <= 8) return s;
+  return 60;
+}
+
+function formatTime(s) {
+  if (s >= 1) return (Number.isInteger(s) ? s : s.toFixed(1)) + ' с';
+  return s.toFixed(1) + ' с';
+}
+
+// Только подписи времени, без вертикальных линий через спектрограмму.
+function drawTimeLabels(c) {
+  // стираем нижнюю полосу
+  c.fillStyle = '#111';
+  c.fillRect(PAD_LEFT, PAD_TOP + PLOT_H, PLOT_W, PAD_BOTTOM);
+
+  const secPerPx = 1 / scanSpeed;
+  const totalSec = PLOT_W * secPerPx;
+  const step = niceTimeStep(totalSec);
+
+  c.fillStyle = '#aaa';
+  c.font = '12px sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'top';
+
+  for (let s = step; s <= totalSec + 0.001; s += step) {
+    const x = PAD_LEFT + PLOT_W - Math.round(s / secPerPx);
+    if (x <= PAD_LEFT || x >= PAD_LEFT + PLOT_W) continue;
+    c.fillText('-' + formatTime(s), x, PAD_TOP + PLOT_H + 8);
+  }
+
+  c.fillStyle = '#ddd';
+  c.fillText('0', PAD_LEFT + PLOT_W - 8, PAD_TOP + PLOT_H + 8);
+  c.fillStyle = '#888';
+  c.textAlign = 'right';
+  c.fillText('время', PAD_LEFT + PLOT_W, PAD_TOP + PLOT_H + 22);
+}
+
+// -------- Таблица Y -> бины --------
+function buildYToBins() {
+  if (!analyser) return;
+  const nyquist = currentSampleRate / 2;
+  const binCount = analyser.frequencyBinCount;
+  const binHz = nyquist / binCount;
+
+  yToBins = new Array(PLOT_H);
+  for (let y = 0; y < PLOT_H; y++) {
+    const fLow  = ((PLOT_H - 1 - y) / (PLOT_H - 1)) * maxFreq;
+    const fHigh = ((PLOT_H - y)     / (PLOT_H - 1)) * maxFreq;
+    let bLow  = Math.floor(fLow  / binHz);
+    let bHigh = Math.ceil (fHigh / binHz);
+    if (bLow  < 0) bLow = 0;
+    if (bHigh >= binCount) bHigh = binCount - 1;
+    if (bHigh < bLow) bHigh = bLow;
+    yToBins[y] = [bLow, bHigh];
+  }
+}
+
+// -------- Отрисовка столбца спектра в offCtx --------
+function drawColumnOff() {
+  analyser.getFloatFrequencyData(freqData);
+  const minDb = analyser.minDecibels;
+  const maxDb = analyser.maxDecibels;
+  const range = maxDb - minDb;
+
+  const x = PAD_LEFT + PLOT_W - 1;
+
+  for (let y = 0; y < PLOT_H; y++) {
+    const pair = yToBins[y];
+    let v = -Infinity;
+    for (let b = pair[0]; b <= pair[1]; b++) {
+      if (freqData[b] > v) v = freqData[b];
+    }
+    let t = (v - minDb) / range;
+    if (t < 0) t = 0; else if (t > 1) t = 1;
+
+    let r, g, b;
+    if (t < 0.2) {
+      const k = t / 0.2;
+      r = 0; g = 0; b = Math.round(80 * k);
+    } else if (t < 0.4) {
+      const k = (t - 0.2) / 0.2;
+      r = 0; g = Math.round(80 * k); b = Math.round(80 + 120 * k);
+    } else if (t < 0.6) {
+      const k = (t - 0.4) / 0.2;
+      r = Math.round(140 * k); g = Math.round(80 + 60 * k); b = Math.round(200 - 80 * k);
+    } else if (t < 0.8) {
+      const k = (t - 0.6) / 0.2;
+      r = Math.round(140 + 115 * k); g = Math.round(140 + 80 * k); b = Math.round(120 - 100 * k);
+    } else {
+      const k = (t - 0.8) / 0.2;
+      r = 255; g = Math.round(220 + 35 * k); b = Math.round(20 + 235 * k);
+    }
+    offCtx.fillStyle = `rgb(${r},${g},${b})`;
+    offCtx.fillRect(x, PAD_TOP + y, 1, 1);
+  }
+}
+
+function shiftLeftOff() {
+  offCtx.drawImage(
+    off,
+    PAD_LEFT + 1, PAD_TOP, PLOT_W - 1, PLOT_H,
+    PAD_LEFT,     PAD_TOP, PLOT_W - 1, PLOT_H
+  );
+}
+
+// -------- Бегунок --------
+function roundRect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y,     x + w, y + h, r);
+  c.arcTo(x + w, y + h, x,     y + h, r);
+  c.arcTo(x,     y + h, x,     y,     r);
+  c.arcTo(x,     y,     x + w, y,     r);
+  c.closePath();
+}
+
+function formatFreqRounded(f) {
+  if (f >= 1000) return (f / 1000).toFixed(2) + ' кГц';
+  return f.toFixed(1) + ' Гц';
+}
+
+function drawMarkerOn(ctxMain) {
+  const y = PAD_TOP + markerY;
+  const x1 = PAD_LEFT;
+  const x2 = PAD_LEFT + PLOT_W;
+
+  ctxMain.save();
+  // горизонтальная линия через всю спектрограмму
+  ctxMain.strokeStyle = 'rgba(0,255,180,0.9)';
+  ctxMain.lineWidth = 1;
+  ctxMain.beginPath();
+  ctxMain.moveTo(x1, y + 0.5);
+  ctxMain.lineTo(x2, y + 0.5);
+  ctxMain.stroke();
+
+  // дорожка справа
+  const trackX = PAD_LEFT + PLOT_W + 20;
+  const trackW = 8;
+
+  ctxMain.fillStyle = 'rgba(255,255,255,0.12)';
+  ctxMain.fillRect(trackX, PAD_TOP, trackW, PLOT_H);
+
+  // ручка
+  const handleW = 18;
+  const handleH = 12;
+  const handleX = trackX + trackW / 2 - handleW / 2;
+  const handleY = y - handleH / 2;
+
+  ctxMain.fillStyle = '#2a7';
+  roundRect(ctxMain, handleX, handleY, handleW, handleH, 4);
+  ctxMain.fill();
+  ctxMain.strokeStyle = '#0f0';
+  ctxMain.lineWidth = 1;
+  ctxMain.stroke();
+
+  // подпись частоты
+  const freq = markerFreq();
+  const label = formatFreqRounded(freq);
+  ctxMain.font = 'bold 13px sans-serif';
+  ctxMain.textBaseline = 'middle';
+
+  const labelX = trackX + trackW + 6;
+  let labelY = y;
+  if (labelY < PAD_TOP + 10) labelY = PAD_TOP + 10;
+  if (labelY > PAD_TOP + PLOT_H - 10) labelY = PAD_TOP + PLOT_H - 10;
+
+  ctxMain.textAlign = 'left';
+  const tw = ctxMain.measureText(label).width;
+  ctxMain.fillStyle = 'rgba(0,0,0,0.75)';
+  roundRect(ctxMain, labelX - 4, labelY - 10, tw + 8, 20, 4);
+  ctxMain.fill();
+
+  ctxMain.fillStyle = '#2fffb4';
+  ctxMain.fillText(label, labelX, labelY);
+
+  ctxMain.restore();
+}
+
+function composeFrame() {
+  ctx.drawImage(off, 0, 0);
+  drawMarkerOn(ctx);
+}
+
+// -------- Цикл --------
+let lastTime = 0;
+let framesForSpeed = 0;
+let speedAccum = 0;
+
+function loop(ts) {
+  if (!running) return;
+  if (lastTime) {
+    const dt = (ts - lastTime) / 1000;
+    speedAccum += dt;
+    framesForSpeed++;
+    if (speedAccum > 0.5) {
+      scanSpeed = framesForSpeed / speedAccum;
+      speedAccum = 0;
+      framesForSpeed = 0;
+      drawTimeLabels(offCtx);
+    }
+  }
+  lastTime = ts;
+
+  shiftLeftOff();
+  drawColumnOff();
+  totalColumns++;
+
+  if (totalColumns % 15 === 0) {
+    drawTimeLabels(offCtx);
+    offCtx.strokeStyle = '#444';
+    offCtx.strokeRect(PAD_LEFT + 0.5, PAD_TOP + 0.5, PLOT_W - 1, PLOT_H - 1);
+  }
+
+  composeFrame();
+  animationId = requestAnimationFrame(loop);
+}
+
+// -------- Старт / стоп --------
+async function toggle() {
+  if (!running) {
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
+      });
+
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      currentSampleRate = audioCtx.sampleRate;
+
+      source = audioCtx.createMediaStreamSource(mediaStream);
+
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 8192;
+      analyser.smoothingTimeConstant = 0.4;
+      analyser.minDecibels = -100;
+      analyser.maxDecibels = -10;
+
+      freqData = new Float32Array(analyser.frequencyBinCount);
+      source.connect(analyser);
+
+      buildYToBins();
+      drawFrameStatic(offCtx);
+
+      totalColumns = 0;
+      lastTime = 0;
+      framesForSpeed = 0;
+      speedAccum = 0;
+
+      running = true;
+      startBtn.textContent = 'Стоп';
+      startBtn.classList.add('running');
+
+      updateStatus();
+      animationId = requestAnimationFrame(loop);
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = 'Ошибка доступа к микрофону: ' + err.message;
+    }
+  } else {
+    running = false;
+    if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+
+    if (source) { try { source.disconnect(); } catch(e){} source = null; }
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(t => t.stop());
+      mediaStream = null;
+    }
+    if (audioCtx) {
+      try { audioCtx.close(); } catch(e){}
+      audioCtx = null;
+    }
+    analyser = null;
+    freqData = null;
+
+    startBtn.textContent = 'Старт';
+    startBtn.classList.remove('running');
+
+    composeFrame();
+  }
+}
+
+function updateStatus() {
+  if (!running) { statusEl.textContent = ''; return; }
+  statusEl.textContent = `Диапазон: 0–${formatFreq(maxFreq)}`;
+}
+
+// -------- Переключение диапазона --------
+function setRange(freq) {
+  maxFreq = freq;
+  if (analyser) buildYToBins();
+
+  drawFrameStatic(offCtx);
+  totalColumns = 0;
+
+  range1 .classList.toggle('active', freq === 1000);
+  range12.classList.toggle('active', freq === 12000);
+  range25.classList.toggle('active', freq === 25000);
+
+  updateStatus();
+  composeFrame();
+}
+
+// -------- Взаимодействие с бегунком --------
+function canvasYToMarkerY(clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleY = canvas.height / rect.height;
+  const cy = (clientY - rect.top) * scaleY;
+  let my = cy - PAD_TOP;
+  if (my < 0) my = 0;
+  if (my > PLOT_H - 1) my = PLOT_H - 1;
+  return Math.round(my);
+}
+
+function isNearTrack(clientX) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const cx = (clientX - rect.left) * scaleX;
+  const trackCenter = PAD_LEFT + PLOT_W + 20 + 4;
+  return Math.abs(cx - trackCenter) <= 30;
+}
+
+canvas.addEventListener('mousedown', (e) => {
+  if (!isNearTrack(e.clientX)) return;
+  dragging = true;
+  markerY = canvasYToMarkerY(e.clientY);
+  composeFrame();
+  e.preventDefault();
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  markerY = canvasYToMarkerY(e.clientY);
+  composeFrame();
+});
+
+window.addEventListener('mouseup', () => { dragging = false; });
+
+canvas.addEventListener('touchstart', (e) => {
+  if (e.touches.length !== 1) return;
+  if (!isNearTrack(e.touches[0].clientX)) return;
+  dragging = true;
+  markerY = canvasYToMarkerY(e.touches[0].clientY);
+  composeFrame();
+  e.preventDefault();
+}, { passive: false });
+
+window.addEventListener('touchmove', (e) => {
+  if (!dragging || e.touches.length !== 1) return;
+  markerY = canvasYToMarkerY(e.touches[0].clientY);
+  composeFrame();
+}, { passive: false });
+
+window.addEventListener('touchend', () => { dragging = false; });
+
+// -------- Инициализация --------
+startBtn.addEventListener('click', toggle);
+range1 .addEventListener('click', () => setRange(1000));
+range12.addEventListener('click', () => setRange(12000));
+range25.addEventListener('click', () => setRange(25000));
+
+drawFrameStatic(offCtx);
+composeFrame();
+</script>
+</body>
+</html>
