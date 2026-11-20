@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ханойская башня</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    color: #fff;
+  }
+  h1 {
+    margin-bottom: 15px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
+    font-size: 28px;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.1);
+    padding: 12px 20px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    backdrop-filter: blur(10px);
+  }
+  .controls label { font-weight: 600; }
+  select, button {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  select { background: #fff; color: #1e3c72; font-weight: 600; }
+  button {
+    background: #ffb400;
+    color: #1e3c72;
+    font-weight: 700;
+    transition: transform 0.1s, background 0.2s;
+  }
+  button:hover { background: #ffc933; }
+  button:active { transform: scale(0.96); }
+  .stats {
+    display: flex;
+    gap: 25px;
+    font-size: 17px;
+    margin-bottom: 15px;
+    background: rgba(255,255,255,0.1);
+    padding: 10px 22px;
+    border-radius: 10px;
+  }
+  .stats span { font-weight: 700; color: #ffb400; }
+
+  .board {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    align-items: flex-end;
+    padding: 10px;
+    border-radius: 12px;
+    background: rgba(0,0,0,0.15);
+    max-width: 100%;
+  }
+  .peg {
+    position: relative;
+    width: 200px;
+    height: 340px;
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    justify-content: flex-start;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.2s;
+  }
+  .peg::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 300px;
+    background: linear-gradient(90deg, #8a5a2b, #c98a4b, #8a5a2b);
+    border-radius: 6px 6px 0 0;
+    z-index: 1;
+  }
+  .peg::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 190px;
+    height: 16px;
+    background: linear-gradient(90deg, #8a5a2b, #c98a4b, #8a5a2b);
+    border-radius: 8px;
+    z-index: 0;
+  }
+  .peg.selected { background: rgba(255,180,0,0.25); }
+  .peg.drop-target { background: rgba(80,255,120,0.25); }
+
+  .disk {
+    height: 26px;
+    border-radius: 13px;
+    z-index: 2;
+    margin-bottom: 3px;
+    transition: transform 0.15s;
+    box-shadow: inset 0 2px 4px rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(0,0,0,0.55);
+  }
+  .peg.selected .disk:last-child,
+  .peg.selected .disk:nth-last-child(2) { }
+  .disk.lifted {
+    transform: translateY(-8px);
+    box-shadow: 0 6px 12px rgba(255,180,0,0.8), inset 0 2px 4px rgba(255,255,255,0.4);
+  }
+
+  .message {
+    margin-top: 18px;
+    font-size: 20px;
+    font-weight: 700;
+    min-height: 28px;
+    color: #ffb400;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+    text-align: center;
+  }
+  .hint { font-size: 13px; opacity: 0.8; margin-top: 10px; text-align: center; max-width: 640px; }
+
+  @media (max-width: 720px) {
+    .peg { width: 30vw; height: 280px; }
+    .peg::before { height: 240px; }
+    .peg::after { width: 90%; }
+    .disk { height: 22px; }
+    h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🗼 Ханойская башня</h1>
+
+<div class="controls">
+  <label for="diskCount">Колец:</label>
+  <select id="diskCount">
+    <!-- 3..12 -->
+  </select>
+  <button id="restartBtn">Новая игра</button>
+</div>
+
+<div class="stats">
+  <div>Ходов: <span id="moveCount">0</span></div>
+  <div>Минимум: <span id="minMoves">7</span></div>
+</div>
+
+<div class="board" id="board">
+  <div class="peg" data-peg="0"></div>
+  <div class="peg" data-peg="1"></div>
+  <div class="peg" data-peg="2"></div>
+</div>
+
+<div class="message" id="message"></div>
+<div class="hint">Нажмите на шест, чтобы взять верхнее кольцо, затем на другой шест, чтобы положить. Нельзя класть большее кольцо на меньшее.</div>
+
+<script>
+(function () {
+  const COLORS = [
+    '#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#1abc9c',
+    '#3498db', '#9b59b6', '#e84393', '#fd79a8', '#00b894',
+    '#6c5ce7', '#d63031'
+  ];
+
+  const diskCountSelect = document.getElementById('diskCount');
+  const restartBtn = document.getElementById('restartBtn');
+  const boardEl = document.getElementById('board');
+  const moveCountEl = document.getElementById('moveCount');
+  const minMovesEl = document.getElementById('minMoves');
+  const messageEl = document.getElementById('message');
+  const pegEls = Array.from(document.querySelectorAll('.peg'));
+
+  let pegs = [[], [], []]; // массив стеков: индекс 0 — дно, последний — верх
+  let selectedPeg = null;
+  let moves = 0;
+  let numDisks = 4;
+  let gameOver = false;
+
+  // Заполнение селекта
+  for (let i = 3; i <= 12; i++) {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = i;
+    if (i === 4) opt.selected = true;
+    diskCountSelect.appendChild(opt);
+  }
+
+  function initGame(n) {
+    numDisks = n;
+    pegs = [[], [], []];
+    // Кольцо 1 — самое маленькое, numDisks — самое большое
+    for (let size = numDisks; size >= 1; size--) {
+      pegs[0].push(size);
+    }
+    selectedPeg = null;
+    moves = 0;
+    gameOver = false;
+    messageEl.textContent = '';
+    moveCountEl.textContent = '0';
+    minMovesEl.textContent = Math.pow(2, numDisks) - 1;
+    render();
+  }
+
+  function diskWidth(size) {
+    // размер 1 — самый маленький, numDisks — самый большой
+    const minW = 30;
+    const maxW = 170;
+    const step = (maxW - minW) / Math.max(1, numDisks - 1);
+    return minW + (size - 1) * step;
+  }
+
+  function render() {
+    pegEls.forEach((pegEl, idx) => {
+      pegEl.innerHTML = '';
+      pegEl.classList.toggle('selected', selectedPeg === idx);
+      pegEl.classList.remove('drop-target');
+
+      pegs[idx].forEach((size, stackIdx) => {
+        const disk = document.createElement('div');
+        disk.className = 'disk';
+        disk.style.width = diskWidth(size) + 'px';
+        disk.style.background = COLORS[(size - 1) % COLORS.length];
+        disk.textContent = size;
+        // Подсветка снятого верхнего кольца
+        if (selectedPeg === idx && stackIdx === pegs[idx].length - 1) {
+          disk.classList.add('lifted');
+        }
+        pegEl.appendChild(disk);
+      });
+    });
+
+    // Подсветка допустимых целей при выборе
+    if (selectedPeg !== null) {
+      pegEls.forEach((pegEl, idx) => {
+        if (idx !== selectedPeg && canMove(selectedPeg, idx)) {
+          pegEl.classList.add('drop-target');
+        }
+      });
+    }
+  }
+
+  function canMove(from, to) {
+    if (from === to) return false;
+    if (pegs[from].length === 0) return false;
+    const topFrom = pegs[from][pegs[from].length - 1];
+    if (pegs[to].length === 0) return true;
+    const topTo = pegs[to][pegs[to].length - 1];
+    return topFrom < topTo;
+  }
+
+  function handlePegClick(idx) {
+    if (gameOver) return;
+
+    if (selectedPeg === null) {
+      // Пытаемся выбрать шест
+      if (pegs[idx].length === 0) {
+        messageEl.textContent = 'Этот шест пуст.';
+        return;
+      }
+      selectedPeg = idx;
+      messageEl.textContent = `Взято кольцо ${pegs[idx][pegs[idx].length - 1]} с шеста ${idx + 1}.`;
+      render();
+    } else if (selectedPeg === idx) {
+      // Отмена выбора
+      selectedPeg = null;
+      messageEl.textContent = '';
+      render();
+    } else {
+      // Пытаемся переместить
+      if (canMove(selectedPeg, idx)) {
+        const disk = pegs[selectedPeg].pop();
+        pegs[idx].push(disk);
+        moves++;
+        moveCountEl.textContent = moves;
+        selectedPeg = null;
+
+        if (checkWin()) {
+          gameOver = true;
+          messageEl.textContent = `🎉 Победа! Вы справились за ${moves} ходов (минимум ${Math.pow(2, numDisks) - 1}).`;
+        } else {
+          messageEl.textContent = `Кольцо ${disk} перемещено на шест ${idx + 1}.`;
+        }
+        render();
+      } else {
+        messageEl.textContent = 'Нельзя класть большее кольцо на меньшее.';
+        // Короткая подсветка ошибки
+        pegEls[idx].style.background = 'rgba(255,60,60,0.35)';
+        setTimeout(() => { pegEls[idx].style.background = ''; }, 300);
+      }
+    }
+  }
+
+  function checkWin() {
+    // Все кольца должны быть на третьем шесте (индекс 2)
+    return pegs[2].length === numDisks;
+  }
+
+  pegEls.forEach((pegEl, idx) => {
+    pegEl.addEventListener('click', () => handlePegClick(idx));
+  });
+
+  restartBtn.addEventListener('click', () => {
+    initGame(parseInt(diskCountSelect.value, 10));
+  });
+
+  diskCountSelect.addEventListener('change', () => {
+    initGame(parseInt(diskCountSelect.value, 10));
+  });
+
+  // Старт
+  initGame(parseInt(diskCountSelect.value, 10));
+})();
+</script>
+</body>
+</html>
